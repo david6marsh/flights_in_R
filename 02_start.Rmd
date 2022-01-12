@@ -1,4 +1,4 @@
-# Getting started {#start}
+# Getting started with the basic tools of R {#start}
 
 We said in chapter \@ref(howto) that you need first to install R and RStudio. These are separate pieces of software: R does all the statistical and graphics stuff, while RStudio provides the graphical user interface. In this chapter we get up and running in RStudio, and see some very basic R code.
 
@@ -29,7 +29,7 @@ There are some hot-keys for moving rapidly around the panes: most often, I use c
 
 Recent versions of `RStudio` have a tutorial (tab in top right pane) if you need more detail.
 
-Try out the console (bottom left, ctrl-2). Try typing `3 + 4 * 2` there (and press 'enter'). You should see "[1] 11", meaning that the first "[1]" (and in this case only) element of your answer is 11. The spaces in that calculation are optional, but recommended for ease of reading. [Try it without the spaces.]
+Try out the console (bottom left, ctrl-2). Try typing `3 + 4 * 2` there (and press 'enter'). You should see "[1] 11", meaning that the first "[1]" (and in this case only) element of your answer is 11. The spaces in that calculation are optional, but recommended for ease of reading. [Exercise: Try it without the spaces.]
 
 If you'd like to see an answer with more than one element, type `letters` into the console. This is a built-in constant. Check the 'help' for 'letters' to see some others.
 
@@ -42,7 +42,7 @@ While you can work with 'bare' files of R source code, 'script files' in the jar
 * you can work with several shorter script files (and other types of source file that we won't be looking at) together, which makes it easier to organise and navigate;
 * and a project automatically remembers which directory it's working in, so you can manage data input and output and graphic output more neatly.
 
-Create yourself a new project using 'File/New Project', selecting the options new project, give it the name 'justlearning' and browse to put it in your personal R directory. (TBD templates). The sequence should look a little like this, with variation coming from where you create the new project subdirectory. That final part depends on your system and filing habits.
+Create yourself a new project using 'File/New Project', selecting the options new project, give it the name 'justlearning' and browse to put it in your personal R directory. The sequence should look a little like this, with variation coming from where you create the new project subdirectory. That final part depends on your system and filing habits.
 ![new project, step 1](images/new project 1.png){width=75%}
 
 ![new project, step 2](images/new project 2.png){width=75%}
@@ -66,7 +66,7 @@ If for some reason the directories already exist, don't worry, you'll just get a
 
 You can also create these directories manually using 'New Folder' in the files tab (ctrl-5), but then make sure both folder names are in lower case! You could even use your operating system file explorer - these are just ordinary directories ('folders'), there's nothing R-special about them.
 
-When you quit RStudio it will save any data and open files in your project. So you can re-open and continue from where you left off. If you've opened very large files, just beware that saving a copy as you close can take some time. (see TBD) 
+When you quit RStudio it will save any data and open files in your project. So you can re-open and continue from where you left off. 
 
 ## First code
 
@@ -103,8 +103,8 @@ The R language is expanding continually as people publish new packages for it. A
 Some packages are already bundled in the basic installation of 'R', such as `base` which provides, as the name suggests, many of the most basic functions. But there are thousands of other packages, coming from:
 
 * [CRAN](https://cran.r-project.org), the "Comprehensive R Archive Network" is the authoritative collection of packages. There are also various 'mirror' (official copy) sites hosted elsewhere, such as at Ghent University. Packages in CRAN have been through a degree of quality control, and are preferred to the less official sources.
-* [Github](https://github.com) and other public repositories. Even Eurocontrol shares some there, such as [CODA taxi times](https://github.com/david6marsh/codaTaxi) and the [PRC dashboard](https://github.com/euctrl-pru/portal).
-* Home-made. Making packages is out of the scope of the book, but if you're inside Eurocontrol, you may want to load the `statfor` package (see section TBD) created by Sebastien Thonnard that builds some access to Eurocontrol datawarehouses as well as nice formatting.
+* [Github](https://github.com) and other public repositories. Even Eurocontrol shares some there, such as [himach](https://github.com/david6marsh/himach) and the [PRC dashboard](https://github.com/euctrl-pru/portal).
+* Home-made. Making packages is out of the scope of the book, but if you're inside Eurocontrol, you may want to load the `statfor` package created by Sebastien that builds some access to Eurocontrol datawarehouses as well as nice formatting.
 
 There are two^[actually, there's a third, but that's too much detail for here] steps to using a package, and sometimes these get confused:
 
@@ -174,11 +174,11 @@ tidyverse_packages()
 
 These include `lubridate` and `stringr` which we've already mentioned.
 
-We'll see a lot more `tidyverse` usage in chapters TBD, when we get to grips with data wrangling. Just to whet your appetite, here we show two quick examples. Try the code out, but don't worry if it's a little cryptic at this stage, we will explain the parts in more detail later.
+We'll see a lot more `tidyverse` usage in later chapters, when we get to grips with data wrangling. Just to whet your appetite, here we show two quick examples. Try the code out, but don't worry if it's a little cryptic at this stage, we will explain the parts in more detail later.
 
 Start with the untidy dataframe shown above. Use `pivot_longer` to make it tidy, all in one go selecting a number of columns (those that start with 'Flights') and extracting the 'year' from this, then pivoting to the tidy form. 
 
-Then we show a pairing of `group_by` and `summarise` to produce some annual totals. This example doesn't save its result but prints it immediately to the log.
+Then we show a pairing of `group_by` and `summarise` to produce some annual totals. This second step example doesn't save its result to a dataframe but prints it immediately to the log.
 
 ```{r}
 untidy <- data.frame(Country = c("France", "Germany"), 
@@ -213,14 +213,16 @@ You'll see another short bit of tidyverse at the beginning of the next chapter.
 You will see lots of different file types (ie file extensions), in the files pane. The main ones to remember are:
 
 * `.R`, `.Rmd`: both contain R code, though `.Rmd` is actually 'r markdown' which is a mix of code and text;
-* `.RProj`: contains an R 'project' - if you see one of these in the directory, this is the one to open - everything else works from there (see TBD);
-* `.rda`, `.RDS`: are different types of data file. R works easily also with `.csv` and `.xls(x)` see TBD.
+* `.RProj`: contains an R 'project' - if you see one of these in the directory, this is the one to open - everything else works from there;
+* `.rda`, `.RDS`: are different types of data file. R works easily also with `.csv` and `.xls(x)`. Try the book search to find places where these are discussed.
 
 ## What's gone wrong?
 
 If you see a window like this, then you have started R rather than RStudio. That is a GUI and you can use it to execute R code, but you'll find RStudio easier for all but the quickest snippets of code. ![basic RGui](images/RGui.png){width=60%}
 
 If it keeps on happening you will find it helpful to associate R files (`.R, .RMD` and others) with RStudio rather than R.
+
+If an RStudio project takes a long time to start, perhaps you had a very large file in your environment when you last closed the project. You might think about removing large files that you don't need with `rm(...)` before you close the project.
 
 If you get errors saying a certain package is only compatible with version xx and higher (of R), and you think you've recently updated, are you sure you updated R rather than RStudio? (Even if this is a task for IT, perhaps they misunderstood and updated the wrong one?) The RStudio version is found from the top menu 'RStudio/About R Studio', the R version is seen when you first start up (see the image just above), or is printed if you type `version` in the console.
 
@@ -237,15 +239,17 @@ If you're searching in 'help' and a function isn't appearing, for example in the
 5. What's the difference between typing into a script file and into the console?
 6. What is a 'vignette'?
 7. (teaser) What does `3 + 1:3` give?
+8. Does R only store `pi` to 5 decimal places, as shown earlier? [Hint: `options(digits = 22)` and then `pi`.]
 
 ### Answers
 
-1. Bottom right.
+1. Bottom right in RStudio.
 2. Both, though you'll nearly always want to use RStudio.
 3. CTRL-8
 4. One or more R datasets
 5. With the console, code is executed as each line is completed.
 6. An extended entry in the documentation showing how to put the functions of the packages together.
 7. `4 5 6`
+8. No.(You'll find the default value for digits in the help for `options`.) Alternative answer, if you're into trigonometry, is no because otherwise `cos(pi)` wouldn't give -1.
 
 
