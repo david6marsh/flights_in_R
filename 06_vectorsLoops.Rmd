@@ -378,7 +378,7 @@ urls <- str_c("https://github.com/david6marsh/flights_in_R/raw/main/data/SID_Mon
                 file_segments, 
                 ".xlsx")
 local_names <- str_c("data/SID_Monthly_", file_segments, ".xlsx")
-download.file(urls, local_names, mode = "wb") 
+download.file(urls, local_names, method = "libcurl", mode = "wb") #for each file, load into /data
 ```
 In this particular case, we already know the file names. More often, we have downloaded a number of files, and know the file name format, but want to avoid typing in the names ourselves. The `dir` function does the job for us, and matches to a pattern. Best to check the number of files, or check the list by eye just to see that the pattern didn't find files that you don't want to process.
 
