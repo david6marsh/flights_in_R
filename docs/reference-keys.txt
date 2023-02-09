@@ -3,6 +3,7 @@ howto
 before-you-start
 ways-to-use-the-material
 structure-of-the-book
+acknowledgements
 whats-gone-wrong
 start
 rstudio
@@ -123,3 +124,4 @@ manipulate-fields-in-rows
 exercises-10
 questions-14
 answers-14
+glossary
