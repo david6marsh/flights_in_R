@@ -185,10 +185,9 @@ fir_poly <- fir |>
   select(-ring_end, -ring_start) |> 
   # now make the polygon (with holes if that makes sense) 
   summarise(geo = s2::s2_make_polygon(longitude, latitude, ring_id = ring_id) |> 
-            sf::st_as_sfc()) |> 
+            sf::st_as_sfc(), .groups = "drop") |> 
   # turn into sf object
-  sf::st_set_geometry("geo") |>
-  ungroup()
+  sf::st_set_geometry("geo") 
 ```
 
 A quick map highlights a number of features of the data: we just have large regions in places distant from Europe, these are aggregate regions made up of lots of actual FIRs; the 'layers' of superimposed FIRs are less transparent so mask the underlying countries more, eg Spain, though this isn't a great way to show this; being Europe-oriented the data have been cut at 180º, to avoid wrapping problems (in fact the map is cut at 180° and the FIRs at 179°).
@@ -430,9 +429,10 @@ geom_sf_bg <- function( ..., m = rnaturalearthdata::countries50,
 # and to get bounding box for an sf, in plot coordinates
 get_bounds <- function(sft, crs = 3035, margin_km = 100){
   sft |> 
-    st_transform(crs) |> # convert to metres (TBD check if units are metres)
+    st_transform(3035) |> # convert to a crs in metres 
     st_buffer(margin_km * 1000) |>  # add the buffer
-    st_bbox() # get the bounding box for the selected airports
+    st_transform(crs) |> #convert to required crs
+    st_bbox() # get the bounding box 
 }
 
 crs_europe <- 3035 #EPSG3035 is our good CRS for Europe maps
@@ -777,101 +777,62 @@ microbenchmark(
 
 ## Density of routes {#mapDensity}
 
-A rough indication of traffic density can be obtained by plotting the routes with a low transparency (`alpha`) and seeing where they overlap. This can be visually helpful, but doesn't give any specific usable values for density.
+A rough indication of traffic density can be obtained by plotting the routes with a low transparency (`alpha`) and seeing where they overlap. This can be visually helpful, but doesn't give any specific, usable values for density. The colouring on the previous map can easily be confusing, if someone tries to read it as a density of traffic. 
 
-We can get an approximate map of traffic density by picking points along the great circle routes (`st_segmentize`) at distances of, say, 75km and then counting (making a heatmap, with `geom_hex` from `ggplot2`) with a hex grid of the same size. It's not exact, since some routes might be counted twice in one hex (if they enter and leave through a vertex, say, rather than along the side). But it's relatively quick to do.
+We need something more precise. Even then, there are layers of precision. We start by working with the great circle routes. These can be said to combine to give the 'density of potential demand' in some sense, since they represent the shortest distance. In reality, winds aloft mean that the great circle isn't the most cost-efficient route, but it's still a good approximation.
 
-Compared to previous maps, the main differences are that we convert the lines into points with `st_cast('MULTIPOINT')`. This doesn't add points, it just extracts the vertices of the lines. And we break the rule and transform our data to the target CRS. From the result we extract the coordinates of every point, since this is the sort of data that `geom_hex` works with. I didn't find a way to get `geom_hex` to understand `sf` data directly, so we break the rule to work in 'plot coordinates' (which are x-y in metres when we use `crs_europe`).
+We could use the `geom_hex` layer in `ggplot`, but doing this means breaking our rule of transforming only for plotting. It is also less flexible if we want to start measuring distance flown. 
 
-We use both the `summarise` and the `purrr` method to speed up the calculation (see section \@ref(fasterGeo)), which on this machine is then acceptably quick for a 100,000 flight sample. If there's a way to pass a count of flights to `geom_hex`, I haven't found it, so we use `uncount` to reverse the `count` step.
+Instead, laying the groundwork for later graphs, and to get a more precise density calculation we need to calculate explicitly which routes intersect which hexes. So we need some hexes. 
 
-```{r}
-sample_km <- 60
-flts <- set.seed(777) # to get a fixed, but random sample
-short_points <- flights  |>  
-  filter(dist_act_km <= 1500) |> 
-  drop_na() |> 
-  slice_sample(n = 100000) |>  
-  count(adep, ades, adep_long, ades_long, adep_lat, ades_lat,
-        name = "flts") |> 
-  longlat_to_sf() |>  #using our faster conversion function
-  st_segmentize(units::set_units(sample_km, km)) 
+We could create these using the `sp` package, which allows us to sample an area hexagonally (`sp::spsample(n=n_hex, type = "hexagonal")` and then convert those hexagon centres into hexagons `sp::HexPoints2SpatialPolygons()`). 
 
-bounds <- get_bounds(short_points) # quicker to get bounds now!
+However, there's a package `dggridR` designed exactly for establishing hexagonal grids on the globe. It's reasonable to assume that a specialist package has considered more of the possible pitfalls of doing it ourselves, and it  allows us to do the work in fewer lines of code. The steps are:
 
-short_points <- short_points |> 
-  st_cast('MULTIPOINT') |> 
-  st_transform(crs_europe) |> 
-  uncount(flts) #duplicate by number of flights
-
-just_pts <- st_coordinates(short_points)[ , 1:2] |> 
-  as_tibble()  
-
-ggplot(just_pts) +
-  geom_sf_bg() + 
-  geom_hex(aes(X, Y), alpha = 0.7, 
-           binwidth = sample_km * 1000) +
-  coord_sf(crs = crs_europe,
-           xlim = c(bounds$xmin, bounds$xmax),
-           ylim = c(bounds$ymin, bounds$ymax))+
-  theme_minimal() +
-  labs(fill = "Flights\nin month",
-       x="", y="") +
-  scale_fill_viridis_c(direction = -1) 
-```
-
-To get a more precise density calculation we need to calculate explicitly which routes intersect which hexes. So we need some hexes. There's a promising package `dggridR` for doing this, but it's not available on CRAN at the time of writing, so we use a more fiddly approach that involves some functions in the `sp` package that we've more-or-less avoided using explicitly so far. The steps are:
-
-1) Use the bounding box as the area in which we want hexes. Transform into planar coordinates and convert to a Spatial object
-2) Sample points on a hexagonal grid.
-3) Convert from points to hexagons.
-4) Flip back to `sf` and then count the intersections. `st_intersects` lists the ids of hexes intersected, so we can just count. We intersect routes with hexes rather than the reverse because then we can just duplicate hex-ids (for each flight) rather than duplicating routes and doing more intersections.
-
-This method is likely to struggle with global maps (because of wrapping problems), so better to focus on a single continent. It generates a couple of warnings ('discarded datum', 'comment ignored') which can be ignored (they're not shown in the book).
+1) Count the great circles as before, though we don't need to split the great circles into segements: `sf` knows well how to find the intersection of a great circle and an polygon.
+2) Use `dggridR` to generate hexagons of about the right size in the long-lat region we need.
+3) These hexagons come with sequence ID numbers, but we need row IDs instead, because that will match with the values returned later by `st_intersects`.
+4) Find the hexagons that are intersected. Then count the number of intersections per hexagon.
+5) Join these counts back onto the hexes, and plot. 
 
 ```{r warning=FALSE}
-flts <- set.seed(777) # to get a fixed, but random sample
-n_hex <- 10000 # this gives similar number to the 'geom_hex' version.
-short_routes <- flights |> 
-  filter(dist_act_km <= 1500) |> 
+sample_km <- 60 # approximate hex size
+set.seed(777) # to get a fixed, but random sample
+counted_gc <- flights  |>  
+  filter(dist_act_km <= 1500) |> # let's sample short-haul flights
   drop_na() |> 
-  slice_sample(n = 100000) |>
+  slice_sample(n = 100000) |>  
+  # count instances of the same great circle from departure to destination
   count(adep, ades, adep_long, ades_long, adep_lat, ades_lat,
         name = "flts") |> 
   longlat_to_sf() #using our faster conversion function
-  # no segmentation
+  # note, no need to chop up the great circles
   
-hex <- st_bbox(short_routes) |> 
-  st_as_sfc() |> 
-  st_transform(crs = crs_europe) |> 
-  as_Spatial() |> 
-  sp::spsample(n=n_hex, type = "hexagonal") |> 
-  sp::HexPoints2SpatialPolygons() |> 
-  st_as_sf() |> 
-  st_transform(crs = crs_europe) |> 
-  #optional: check areas are all equal
-  # mutate(area = st_area(geometry)) |> 
-  rowid_to_column() # add id to each row, for later joining
-  # but not for looping over - oh no!
+ll_bounds <- get_bounds(counted_gc, crs = 4326) #in long lat
+#choose a grid
+hex_grid <- dggridR::dgconstruct(spacing=sample_km) |> 
+  # get only those hexes we need
+  dggridR::dgrectgrid(minlat = ll_bounds$ymin, minlon = ll_bounds$xmin,
+             maxlat = ll_bounds$ymax, maxlon = ll_bounds$xmax) |> 
+  # renumber the selected hexes
+  mutate(seqnum = row_number())
 
-hex_counts <- short_routes |>
-  st_transform(crs = crs_europe) |> 
-  st_intersects(hex) |>
-  # duplicate the hex ids, depending on the number of flights
-  map2(short_routes$flts, rep) |> 
-  flatten_int() |> #then collapse everything into a single vector
-  as_tibble() |> 
-  count(value, name = "flts") #value is default name in as_tibble
+hex_counts <- counted_gc |>
+  mutate(grid_id = st_intersects(counted_gc, hex_grid)) |>
+  st_drop_geometry() |> # for hex_counts we don't need any geography, just grid ID
+  unnest(grid_id) |> 
+  # now focus just on grid IDs
+  group_by(grid_id) |> 
+  summarise(flts = sum(flts))
+ 
+hex <- hex_grid |>  
+  # inner join since only want to keep hexes with flights
+  inner_join(hex_counts, by = c("seqnum" = "grid_id"))
 
-# add in the counts to the hexes
-hex <- hex |>  
-  left_join(hex_counts, by = c("rowid" = "value")) |> 
-  drop_na() # hexes with no traffic
-
-bounds <- get_bounds(short_routes)
+bounds <- get_bounds(counted_gc)
 ggplot(hex) + 
   geom_sf_bg() + 
-  geom_sf(aes(fill = flts), alpha = 0.7, size = 0)  +
+  geom_sf(aes(fill = flts), alpha = 0.7, size = 0, colour = NA)  +
   coord_sf(crs = crs_europe,
            xlim = c(bounds$xmin, bounds$xmax),
            ylim = c(bounds$ymin, bounds$ymax))+
@@ -882,51 +843,46 @@ ggplot(hex) +
   scale_fill_viridis_c(direction = -1) 
 ```
 
-Comparing the two version, the former has slightly smaller hexes (it's difficult to align the numbers precisely since one is defined by diameter and the other by number), but higher flight counts. This emphasises the reality of the overcounting risk: it would be better to drop the numbers from the scale, or use the second method!
-
-If you extend to different samples, the process might fail, most likely because the hexes are spreading too wide. The solution is to crop more closely [adapt `get_bounds`, or the output from it to solve that] or use a hex-on-the-sphere approach such as in `dggridR` (https://github.com/r-barnes/dggridR/). 
+In this code, `st_intersects` is calculating which hexes are intersected by great circles. But `sf` doesn't mind if these are great circles, a line made up of great circle segments, or multiple such lines. That means that switching to calculating density of actual routes from this code is an exercise. 
 
 ### Exercises
 
 #### Questions
 
-1) Plot a density map of the AT72 routes, using the accurate intersection method.
-2) AT72 are used in passenger, charter and all-cargo markets. Plot a density plot for each of these in separate facets. The facets are easy, but counting by `segment` as a group variable is quite tricky. If you want to try a simpler question: which four locations see most AT72 use on scheduled services?
+1) Plot a density map of the AT72 _actual_ routes, not just great circles. Use the data you created earlier: `geo_routes`.
+2) AT72 are used in passenger, charter and all-cargo markets. Plot a density plot for actual routes, for each of these segments in separate facets.
 
 #### Answers
 
-1) Assuming that geo_routes is still in your environment, there are minor changes. Mostly because we don't need to count the flights, we assume that each route is unique. This is a much clearer picture of where the flights are most common.
+1) Assuming that geo_routes is still in your environment, there are minor changes. Mostly because each row is one flight, so we don't sum, but instead count the rows. This gives a much clearer picture of where the flights are most common than just plotting each flight, as we did in an earlier exercise.
 
 ```{r warning=FALSE}
 # assume you still have geo_routes in your environment
-n_hex <- 10000
-hex <- st_bbox(geo_routes) |> # just this line changes
-  st_as_sfc() |> 
-  st_transform(crs = crs_europe) |> 
-  as_Spatial() |> 
-  sp::spsample(n=n_hex, type = "hexagonal") |> 
-  sp::HexPoints2SpatialPolygons() |> 
-  st_as_sf() |> 
-  st_transform(crs = crs_europe) |> 
-  rowid_to_column() 
+ll_bounds <- get_bounds(geo_routes, crs = 4326) #in long lat
+#choose a grid
+hex_grid <- dggridR::dgconstruct(spacing=sample_km) |> 
+  # get only those hexes we need
+  dggridR::dgrectgrid(minlat = ll_bounds$ymin, minlon = ll_bounds$xmin,
+             maxlat = ll_bounds$ymax, maxlon = ll_bounds$xmax) |> 
+  # renumber the selected hexes
+  mutate(seqnum = row_number())
 
 hex_counts <- geo_routes |>
-  st_transform(crs = crs_europe) |> 
-  st_intersects(hex) |>
-  # duplicate the hex ids, depending on the number of flights
-  flatten_int() |> #then collapse everything into a single vector
-  as_tibble() |> 
-  count(value, name = "flts") #value is default name in as_tibble
-
-# add in the counts to the hexes
-hex <- hex |>  
-  left_join(hex_counts, by = c("rowid" = "value")) |> 
-  drop_na() # hexes with no traffic
+  mutate(grid_id = st_intersects(geo_routes, hex_grid)) |>
+  st_drop_geometry() |> # for hex_counts we don't need any geography, just grid ID
+  unnest(grid_id) |> 
+  # now focus just on grid IDs
+  group_by(grid_id) |> 
+  summarise(flts = n())
+ 
+hex <- hex_grid |>  
+  # inner join since only want to keep hexes with flights
+  inner_join(hex_counts, by = c("seqnum" = "grid_id"))
 
 bounds <- get_bounds(geo_routes)
-ggplot(hex |> mutate(group = sample(1:2, n(), replace = TRUE))) + 
+ggplot(hex) + 
   geom_sf_bg() + 
-  geom_sf(aes(fill = flts), alpha = 0.7, size = 0)  +
+  geom_sf(aes(fill = flts), alpha = 0.7, size = 0, colour = NA)  +
   coord_sf(crs = crs_europe,
            xlim = c(bounds$xmin, bounds$xmax),
            ylim = c(bounds$ymin, bounds$ymax))+
@@ -938,46 +894,32 @@ ggplot(hex |> mutate(group = sample(1:2, n(), replace = TRUE))) +
   scale_fill_viridis_c(direction = -1) 
 ```
 
-2) This is a difficult one. We add the segments back into geo_routes, and pull out that column stand-alone. We hang on to `st_intersects` which is quick and is a sort of list so we use it as a tibble column. Then bind on the segments column, which gives our groups. At this point, we want one list or vector of hex-ids per segment so use `summarise` to collapse into a vector wrapped in a list so that it can also be a list column. And that can simply be `unnest`ed, ready for counting.  I'm happy to believe you might find an easier way to do this.
+2) This 'just' needs some grouping by market segment. We add the market segment column back into geo_routes (`id` is a unique key per flight). Then redo the counts, grouping also by segment. The map just needs a `facet`. Faceting is useful, but maps rapidly become quite small, as here. So we darken the land a little, to make the yellow areas more evident.  
 
 ```{r warning=FALSE, fig.height=3, fig.width=8}
-markets <- geo_routes |> 
-  # let's keep all segments for now
-  left_join(ac_flts |> select(id, segment)) |> 
-  pull(segment)
+#join the segment back on
+with_seg <- geo_routes |> 
+  # we can select just the columns we need on the fly
+  left_join(ac_flts |> select(id, segment), by = "id")
 
-# the hexes can be the same as in Qn 1
-n_hex <- 10000
-hex <- st_bbox(geo_routes) |> # just this line changes
-  st_as_sfc() |> 
-  st_transform(crs = crs_europe) |> 
-  as_Spatial() |> 
-  sp::spsample(n=n_hex, type = "hexagonal") |> 
-  sp::HexPoints2SpatialPolygons() |> 
-  st_as_sf() |> 
-  st_transform(crs = crs_europe) |> 
-  rowid_to_column() 
+# the hexes will be the same as in Qn1
+hex_counts <- with_seg |>
+  mutate(grid_id = st_intersects(geo_routes, hex_grid)) |>
+  st_drop_geometry() |> # for hex_counts we don't need any geography, just grid ID
+  unnest(grid_id) |> 
+  # now focus just on grid IDs
+  group_by(segment, grid_id) |> # additional group_by
+  summarise(flts = n(), .groups = "drop")
+ 
+hex <- hex_grid |>  
+  # each hex might now be in more than one row
+  inner_join(hex_counts, by = c("seqnum" = "grid_id"))
 
-hex_counts <- tibble(
-    hex_id = st_intersects(geo_routes |> 
-                         st_transform(crs = crs_europe), 
-                         hex),
-    market = markets) |> 
-  group_by(market) |> 
-  summarise(hex_id = list(flatten_int(hex_id))) |> 
-  unnest(hex_id) |> 
-  count(market, hex_id, name = "flts")
-
-# add in the counts to the hexes
-hex_m <- hex |>  
-  left_join(hex_counts, by = c("rowid" = "hex_id")) |> 
-  drop_na() # hexes with no traffic
-
-bounds <- get_bounds(geo_routes)
-ggplot(hex_m) + 
-  geom_sf_bg() + 
-  geom_sf(aes(fill = flts), alpha = 0.7, size = 0)  +
-  facet_wrap(~market) +
+# bounds haven't changed
+ggplot(hex) + 
+  geom_sf_bg(fill = "grey70") + # a little darker land for better contrast with yellow
+  geom_sf(aes(fill = flts), alpha = 0.7, size = 0, colour = NA)  +
+  facet_wrap(~segment) +
   coord_sf(crs = crs_europe,
            xlim = c(bounds$xmin, bounds$xmax),
            ylim = c(bounds$ymin, bounds$ymax))+
@@ -994,14 +936,13 @@ ggplot(hex_m) +
 
 With maps it seems that there are just so many things to get wrong. 
 
-1) Map issues, especially polygons that seem to have crossings in them; errors like `Loop 96 is not valid: Edge 743 crosses edge 998`. This _could_ be that there is a problem in the map, but it can also be an awkward interaction between the map and a CRS especially at the 'dateline' (the 'far' edge of the map). There isn't a single solution to this, but filtering out chunks of the map that you don't need can work. In other cases, simplifying the map might help (`st_simplify`), in still others adding points can help(`st_segmentize`).
+1) Map issues, especially polygons that seem to have crossings in them; errors like `Loop 96 is not valid: Edge 743 crosses edge 998` can occur, for example when you use an `st_as_sf` to translate Eurostat or other data into the `sf` format. This _could_ be that there is a problem in the map, but it can also be an awkward interaction between the map and a CRS especially at the 'dateline' (the 'far' edge of the map). There isn't a single solution to this, but filtering out chunks of the map that you don't need can work. In other cases, simplifying the map might help (`st_simplify`), in still others adding points can help(`st_segmentize`).
 2) Empty maps, or maps with large empty areas. A map of Europe squeezed into the top right corner can mean that you've added a ggplot layer that is in long-lat to one that has been projected and is in metres (so that the long-lat get plotted somewhere near 0 long, 0 lat). You might also have a map that is being strict about including French Guiana and other overseas territories. In the first case, see the `coord_sf()` discussion earlier in this chapter. In the latter case, you'll need to set bounds for the map (see the later part of section \@ref(mapCountries)). 
-3) In World maps, unexpected near-horizontal lines is a sign of cropping and dateline troubles. My usual solution is to use `himach::st_window`, which is basically a replacement for the `st_transform` that we've seen here that first cropps to the final view window. It's designed for use with the `crs_Atlantic` and `crs_Pacific` CRSs that come with the `himach` package. There are other functions for handling the 'dateline', but I haven't found an easier way to handle all types of geometry (line, polygon etc) so reliably.
+3) In World maps, unexpected near-horizontal lines is a sign of cropping and dateline troubles. My usual solution is to use `himach::st_window`, which is basically a replacement for the `st_transform` that we've seen here that first crops to the final view window. It's designed for use with the `crs_Atlantic` and `crs_Pacific` CRSs that come with the `himach` package. There are other functions for handling the 'dateline', but I haven't found an easier way to handle all types of geometry (line, polygon etc) so reliably.
 
 ```{r}
 map <- rnaturalearthdata::coastline110 |> 
   st_as_sf()
-
 # a Pacific view creates problems along Greenwich meridian
 ggplot(map) +
   geom_sf() +
@@ -1012,7 +953,6 @@ ggplot(map) +
 ggplot(map |> himach::st_window(himach::crs_Pacific))+
   labs(title = "Wrapping problems solved.") +
   geom_sf()
-
 ```
 
 ```{r echo=FALSE}
