@@ -1,9 +1,9 @@
 # Filtering a dataset and refining the CO~2~ graph {#filter}
 
-In this chapter we improve the CO~2~ emissions graph, _en route_ learning how to filter observations from a dataset, to add new variables, and to use the `pipe` operator `%>%`.
-
+In this chapter we improve the CO~2~ emissions graph, _en route_ learning how to filter observations from a dataset, to add new variables, and to use the `pipe` operator `|>` which is really helpful for writing readable code.
+  
 ```{r, echo=FALSE}
-knitr::kable(data.frame(syl=c("`filter()`, `==`, `%in%`, `mutate()`, `slice_max()`, `%>%`, `geom_text_repel()`, `scales_colour_...`")),
+knitr::kable(data.frame(syl=c("`filter()`, `==`, `%in%`, `mutate()`, `slice_max()`, `|>`, `geom_text_repel()`, `scales_colour_...`, `theme()`")),
              col.names = c("In this chapter, you'll be introduced to:"))
 suppressPackageStartupMessages(library(tidyverse)) # without lots of messages filling up the book
 
@@ -11,31 +11,31 @@ suppressPackageStartupMessages(library(tidyverse)) # without lots of messages fi
 load("data/annual_co2.rda")
 ```
 
-On re-opening your `justlearning` project, you should still have the `annual_co2` dataset in your environment, since RStudio saves these data and reloads on restart. If not, you should find that `annual_co2.rda` is saved in the `data` folder, and you can load it using `load("data/annual_co2.rda")`. One R speciality here is that you don't need to assign the result with a `annual_co2 <- ...`; in fact the single file that we saved could have contained a number of datasets, and they're all reloaded _with their original dataset names_.^[If even that doesn't work, and for some reason the `rda` file is not in your data folder, go back to section \@ref(loadco2), load the Excel file again, and find the code to summarise over years.] 
+On re-opening your `justlearning` project, you should still have the `annual_co2` dataset in your environment, since RStudio saves these data and reloads on restart. If not, you should find that `annual_co2.rda` is saved in the `data` folder, and you can load it using `load("data/annual_co2.rda")`. One R speciality here is that, with `load`, you don't need to assign the result with a `annual_co2 <- ...`; in fact the single file that we saved could have contained a number of datasets, and they're all reloaded _with their original dataset names_.^[If even that doesn't work, and for some reason the `rda` file is not in your data folder, go back to section \@ref(loadco2), load the Excel file again, and find the code to summarise over years.] 
 
-If you have closed RStudio and re-opened it, then you have a new session and need to reload packages, in this case `library(tidyverse)`. Make yourself a new R script file for 'chapter4' starting with this.
+If you have closed RStudio and re-opened it, then you have a new session and need to reload packages, in this case `library(tidyverse)`. Make yourself a new R script file for 'chapter4' starting with that code.
 
 ## Sequences of functions
 
 It's time for a bit more syntax. We saw already that you can combine functions by making one the parameter to another. Or to put it another way, wrapping one around the other. As you combine more functions, this soon becomes hard to read, and you have to rely on the editor to help you spot whether you've enough brackets closed at the right point.
 
-For that reason we use a different syntax, the 'pipe' operator `%>%` introduced by the `magrittr` package and adopted by the tidyverse. If you learn only one control-key combination in RStudio, do learn shift-ctrl-M (also shift-command-M on Mac). This must be the fastest way to type '%>%'! [Try it in your console.]  
+For that reason we use a different syntax, the 'pipe' operator `|>` which was recently introduced into base R^[The `|>` pipe arrived with R version 4.1.0 in 2021. So if you're looking at earlier code snippets on-line, you might see an earlier 'pipe' from the `magrittr` package `%>%`. Nearly always you can just replace `%>%` with `|>`.]. If you learn only one control-key combination in RStudio, do learn shift-ctrl-M (also shift-command-M on Mac). This must be the fastest way to type '|>'! [Try it in your console.]  
 
-With a new line after each `%>%` and appropriate indenting (RStudio helps with that), you get code that looks like this. This says, fill `a` with what you get from dataset `b` after applying function `fun1`, then function `fun2`.
+With a new line after each `|>` and appropriate indenting (RStudio helps with that), you get code that looks like this. This says, fill `a` with what you get from dataset `b` after applying function `fun1`, then function `fun2`.
 
 ```{r syntax, eval=FALSE}
 # which is clearer
 # with a pipe?
-a <- b %>% 
-  fun1(p1) %>% 
+a <- b |> 
+  fun1(p1) |> 
   fun2(p2, p3)
 # or without?
 a <- fun2(fun1(b, p1), p2, p3)
 ```
 
-The pipe syntax works because `fun1` actually has a parameter list that _starts_ with the dataset to which it should be applied `fun1(data, p1,...)`. So `b %>% fun1(p1)` is just another way of writing `fun1(b, p1)`. Or, the other way around, you can use `%>%` whenever you have a function whose first parameter is the dataset to be operated on. It turns out that this is true for very many of them, and the tidyverse is designed that way. [Does the code to summarise by year that you saw in section \@ref(loadco2) make more sense now that you know about `%>%`?]
+The pipe syntax works because `fun1` actually has a parameter list that _starts_ with the dataset to which it should be applied `fun1(data, p1,...)`. So `b |> fun1(p1)` is just another way of writing `fun1(b, p1)`. Or, the other way around, you can use `|>` whenever you have a function whose first parameter is the dataset to be operated on. It turns out that this is true for very many of them, and the tidyverse is designed that way. [Does the code to summarise by year that you saw in section \@ref(loadco2) make more sense now that you know about `|>`?]
 
-## Filtering datasets and logical tests
+## Filtering datasets and logical tests {#logicalTests}
 
 As is so often the case, in R there are several of ways to select rows from a dataframe or tibble. We'll focus on the `filter(data, test)` function. For this we need to know how to construct a logical test.
 
@@ -48,7 +48,7 @@ There are three parts to this: the logic, the test functions and what's being te
 In this example, we don't push the result into a dataset (no `a <- `), so it gets printed out directly.
 
 ```{r}
-annual_co2 %>% 
+annual_co2 |> 
   filter(YEAR == 2018 & STATE_NAME %in% c("CZECHIA", "ALBANIA"))
 ```
 
@@ -66,24 +66,24 @@ In the previous chapter we selected the first-named states with `head()`. Now we
 The code is like this. A final novelty is that we use `pull()` which, as its help-file says, does the same as `$` (learned in the last chapter) but looks nicer in pipes. [Where can you look at `top_states` to check that there are 8 values?]
 
 ```{r}
-top_states <- annual_co2 %>%
-  filter(YEAR == 2019) %>%     # top in year 2019
-  slice_max(TF, n = 8) %>%  # top 8 
-  pull(STATE_NAME) 
+top_states <- annual_co2 |>
+  filter(YEAR == 2019) |>  # top in year 2019
+  slice_max(TF, n = 8) |>  # top 8 
+  pull(STATE_NAME) # just give a vector of names, not a 1-column tibble
 ```
 
 `slice_max()` is a good example of how R changes with time. New versions of packages introduce minor or major changes. Sometimes a function is `superseded` (left to rot), other times it may be `deprecated` (you have some time to switch to a new version before it's removed). The function `top_n`, which you might see lying around in legacy code, has been superseded by `slice_max()`. [Check out the documentation of `top_n` for some of the reasons.] 
 
 These changes mean that just updating to the latest version of the package is not always the best idea, because you might have to spend some time checking for changes. It also means that, when searching on the web for hints, snippets and answers, you need to look at the date of the answer. `ggplot` in particular has changed quite a bit, so answers more than 5 years old or so might not be that helpful.
 
-## CO~2~ graph for the top states
+## CO~2~ graph for the top states {#topStatesGraph}
 
 With `top_states` in place we can easily plot the data for the busiest states. 
 
-We update the title, and add a footnote (`caption`) to explain what's going on. We could have created a new dataset, eg `top_co2 <- annual_co2 %>% filter(STATE_NAME %in% top_states)`, and then used this in the `ggplot`. But we only plan to use this filter once, so to avoid cluttering the environment with datasets, we filter 'on the fly', within the `ggplot` statement. In this case, this is a matter of personal preference. If the datasets were a lot larger, and we intended analysing and transforming just the top states in further graphs, the decision might be different.
+We update the title, and add a footnote (`caption`) to explain what's going on. We could have created a new dataset, eg `top_co2 <- annual_co2 |> filter(STATE_NAME %in% top_states)`, and then used this in the `ggplot`. But we only plan to use this filter once, so to avoid cluttering the environment with datasets, we filter 'on the fly', within the `ggplot` statement. In this case, this is a matter of personal preference. If the datasets were a lot larger, and we intended analysing and transforming just the top states in further graphs, the decision might be different.
 
 ```{r}
-ggplot(annual_co2 %>% 
+ggplot(annual_co2 |> 
          filter(STATE_NAME %in% top_states), 
        aes(TF/1e6, CO2_QTY_TONNES/1e6, 
            colour = YEAR, group = STATE_NAME)) +
@@ -101,21 +101,21 @@ One advantage of filtering on the fly is that we can change on the fly. [Change 
 
 As an analyst, I really want to know which country is which. With just 8 states shown, maybe I can use symbols? At one level it's quick to do. Just replace `group = ` with `shape = `. [Try this.] `ggplot` complains that it doesn't really like using more than 6 symbols, because it becomes hard for the reader to jump between legend and graph. We could roll with it and learn how to extend the palette, but is there another solution?
 
-We can separate states by colours. Again, quite quick: replace `colour = YEAR, group = STATE_NAME` with `colour = STATE_NAME`. [Try this.] The line means we can work out the ordering of the years easily, so losing the year isn't a big issue here. But eight colours is also a lot to tell apart. Even without colour blindness, you might think they're clear but when projected onto a screen or printed or on a tiny phone screen, perhaps not.
+We can separate states by colours. Again, quite quick: replace `colour = YEAR, group = STATE_NAME` with `colour = STATE_NAME`. [Try this.] The line means we can work out the ordering of the years easily, so losing the year isn't a big issue here. But eight colours is also a lot to tell apart. Even without colour blindness, while you might think they're clear on your laptop screen, when projected onto a screen or printed or on a tiny phone screen, perhaps they won't be. 
 
 ## Labelling the CO~2~ graph {#labelco2}
 
 It's relatively easy to follow a slightly different route: adding state names directly to the graph. This is done with `geom_text` added to the `ggplot`. We only want to label the point in 2019 rather than all years, so we create a new variable which is empty except in rows for the year 2019. `mutate(a = ...)` is the function for adding a variable 'a' to the dataset^[and we use lower case for the variable name, because that's our preference, even if the imported names don't do this]. `if_else()` is how we give a value for only some years. As with the `filter()` function, we can refer to other variables in `annual_co2` without inverted commas. 
 
-This time, we amend the `annual_co2` dataset itself, because we want to be able to use this in several places, not just in a single graph. The syntax `a <- a %>% ...` follows the same pattern as you saw earlier, but you're overwriting the original dataset.
+This time, we amend the `annual_co2` dataset itself, because we want to be able to use this in several places, not just in a single graph. The syntax `a <- a |> ...` follows the same pattern as you saw earlier, but you're overwriting the original dataset (with one that has one extra variable).
 
 The `geom_text()` _inherits_ all of the aesthetics from the `ggplot` function, so it already knows where to find x and y coordinates, and what colour to use. We still need to tell `geom_text()` where to find the labels. This is also an aesthetic.
 
 ```{r}
-annual_co2 <- annual_co2 %>% 
+annual_co2 <- annual_co2 |> 
   mutate(state_label = if_else(YEAR == 2019, STATE_NAME, ""))
 
-ggplot(annual_co2 %>% 
+ggplot(annual_co2 |> 
          filter(STATE_NAME %in% top_states), 
        aes(TF/1e6, CO2_QTY_TONNES/1e6, 
            colour = YEAR, group = STATE_NAME)) +
@@ -129,7 +129,7 @@ ggplot(annual_co2 %>%
        caption = "Source: EUROCONTROL. 'Busiest' means most flights in 2019.")
 ```
 
-This is close, but not quite good enough. The text is centred on the 2019 point, and this creates some ugly overlaps. There are lots of options in `geom_text()` to adjust the position, and you'll find lots of examples on the web. So we could spend time adjusting the positions. But this is a first example of the rule: 'surely someone has already come across this problem?'.
+This is close, but not quite good enough. The text is centred on the 2019 point, and this creates some ugly overlaps (here between points and labels, but often between labels). There are lots of options in `geom_text()` to adjust the position, and you'll find lots of examples on the web. So we could spend time adjusting the positions. But this is a first example of the rule: 'surely someone has already come across this problem?'.
 
 Someone has indeed spent time to come up with good ways to deconflict and position labels on graphs. The package is called `ggrepel`, which you might need to install with `install.packages("ggrepel")`, and it provides a 'drop in' replacement for `geom_text` naturally called `geom_text_repel`. To avoid using `library("ggrepel")` when we're just using one function from the package on one occasion, we use the double-colon syntax in the code (see \@ref(twocolons)).
 
@@ -138,16 +138,17 @@ The defaults for this function work pretty well in this particular case. But the
 The other thing to improve is the year scale, which shows with meaningless decimals. We use a quick-ish fix, rather than the tidiest-possible solution. Scales, whether the axes or colours, are controlled by `ggplot` functions starting `scales_` in this case `scales_colour_steps()` gets us a scale that shows the individual years. This is a 'dirty' solution in the sense that, if the data for 2020 get included, you might need to tweak the code; but then, we've hard-coded 2019 in a number of places, so this is dirty elsewhere. We'll see cleaner options later (for example in section \@ref(factors)).
 
 ```{r}
-annual_co2 <- annual_co2 %>% 
+annual_co2 <- annual_co2 |> 
   mutate(state_label = if_else(YEAR == 2019, str_to_title(STATE_NAME), ""))
 
-ggplot(annual_co2 %>% 
+ggplot(annual_co2 |> 
          filter(STATE_NAME %in% top_states), 
        aes(TF/1e6, CO2_QTY_TONNES/1e6, 
            colour = YEAR, group = STATE_NAME)) +
   geom_point() + 
   geom_path() +
-  ggrepel::geom_text_repel(aes(label = state_label)) +
+  # prefix with ggrepel:: to use function without loading full ggrepel package
+  ggrepel::geom_text_repel(aes(label = state_label)) + 
   scale_colour_steps(n.breaks = 8, show.limits = TRUE) +
   labs(x = "Departing Flights (millions)", 
        y = bquote(~CO[2]~" (million tonnes)"),
@@ -155,6 +156,15 @@ ggplot(annual_co2 %>%
        title = "Emissions for the busiest 8 states",
        caption = "Source: EUROCONTROL. 'Busiest' means most flights in 2019.")
 ```
+
+## A quick word on themes {#themes}
+
+So far, our charts have had a 'standard ggplot' feel to them. You might even start to recognise the pale grey background with white grid lines in other people's charts. This is called the default ggplot 'theme'. 
+
+Themes are used in two ways:
+
+* They allow the fine control of the appearance of graphs: moving or suppressing a legend, rotating axis text, changing colours. Check the 'help' entry for `theme` for the long list of parameters which you can control, and examples. 
+* They allow (creation and) selection of a theme that covers a range of style parameters. Try running the last graph with `theme_minimal()`. You can use one of these and then override parts of it with a `theme()` call. The usual `ggplot` rule of 'last function ends up on top` applies.
 
 ## What does the graph say about CO~2~?
 
@@ -170,7 +180,9 @@ It's inevitable that you will type `=` in tests where you mean `==`. Some functi
 
 Watch that case! We are using the function `filter()`, not the function `Filter()` which is something else entirely.
 
-`if_else` is a fussy version of the base function `ifelse`, that we use here to maximise use of tidyverse functions. If it warns you that the 'false' must be something, then it has your long-term interests at heart. It just means that it's a different type to the 'true'. Compare `ifelse(1<2,"true",NA)` and `if_else(1<2,"true",NA)` where `NA` is the code for missing. 
+`if_else` is a fussy version of the base function `ifelse`, that we use here to maximise use of tidyverse functions. If it warns you that the 'false' must be something, then it has your long-term interests at heart. It just means that it's a different type to the 'true'. [Compare `ifelse(1<2,"true",NA)` and `if_else(1<2,"true",NA)` where `NA` is the code for missing.]
+
+If shift-ctrl-M gives you `%>%`, then you need to set the RStudio code options to 'use native pipe operator'.
 
 ## Exercises
 
@@ -179,7 +191,7 @@ Watch that case! We are using the function `filter()`, not the function `Filter(
 1) Where can you look to see that `top_states` has 8 values?
 2) How does `geom_text()` know where to place the text on the graph?
 3) Adapt `geom_text()` to shift all labels up 2 (million tonnes!). (Hint: Check the help file.)
-4) Adapt the final graph to show the smallest 8 states instead. (Hints: What's the most likely counterpart to `slice_max`? Closely-related functions are often to be found in the _same_ help file, so checking the help for a function you know might help you find similar ones that you don't.)
+4) Adapt the final graph to show the smallest 8 states instead. (Hints: What's the most likely counterpart to `slice_max`? Closely-related functions are often to be found in the _same_ help file, so checking the help for a function you know might help you find similar ones that you don't.) You might get a 'too many overlaps' warning. Why is this?
 5) Adapt the graph to show year on the x-axis and CO~2~/flight on the y-axis. (Hints: Mostly changing the first `aes()` and deleting some elements. For a pretty graph you might google how to hide the legend "ggplot hide legend", and how to set the breaks on the x-axis.)
 
 ### Answers
@@ -187,14 +199,14 @@ Watch that case! We are using the function `filter()`, not the function `Filter(
 1) The environment pane, but you need to scroll down to "values" because it's a simple vector.
 2) `geom_text()` inherits all aesthetics from the opening `ggplot(..., aes(...))`, which can be supplemented or over-written by its own `aes()`. In fact you could put the `label=` into the first `aes()`.
 3) `geom_text(aes(label = state_label), nudge_y = 2)`. If you put the `nudge_y` inside the `aes()` you get an error ('Ignoring unknown aesthetics: nudge_y') because it's not something that can vary with the values of a variable ("not an aesthetic").
-4) `geom_text_repel` uses call-out lines when it can't get the text close. You could experiment with making these a less confusing colour. You might also drop the 'millions'.
-```{r}
-small_states <- annual_co2 %>% 
-  filter(YEAR == 2019) %>%     #  in year 2019
-  slice_min(TF, n = 8) %>%  # smallest 8 
+4) `geom_text_repel` uses call-out lines when it can't get the text close. You could experiment with making these a less confusing colour. You might also drop the 'millions'. The 'too many overlaps' is due to the very low-traffic states clustered in the bottom left corner. Try adding `max.overlaps = 100` to `ggrepel`.
+```{r, plot.width}
+small_states <- annual_co2 |> 
+  filter(YEAR == 2019 ) |>     #  in year 2019
+  slice_min(TF, n = 8) |>  # smallest 8 
   pull(STATE_NAME)
 
-ggplot(annual_co2 %>% 
+ggplot(annual_co2 |> 
          filter(STATE_NAME %in% small_states), 
        aes(TF/1e6, CO2_QTY_TONNES/1e6, 
            colour = YEAR, group = STATE_NAME)) +
@@ -209,10 +221,10 @@ ggplot(annual_co2 %>%
        caption = "Source: EUROCONTROL. 'Busiest' means most flights in 2019.")
 ```
 
-4) A pedant might say this shouldn't be a line chart, but here's one possibility. We'll see a different version of this in section (TBD)
+5) A pedant might say this shouldn't be a line chart, but here's one possibility.
 
 ```{r}
-ggplot(annual_co2 %>% 
+ggplot(annual_co2 |> 
          filter(STATE_NAME %in% top_states), 
        aes(YEAR, CO2_QTY_TONNES/TF, 
            colour = STATE_NAME)) +

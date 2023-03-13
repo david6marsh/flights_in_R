@@ -1,6 +1,6 @@
 # Getting started with the basic tools of R {#start}
 
-We said in chapter \@ref(howto) that you need first to install R and RStudio. These are separate pieces of software: R does all the statistical and graphics stuff, while RStudio provides the graphical user interface. In this chapter we get up and running in RStudio, and see some very basic R code.
+We said in chapter \@ref(howto) that you need first to install R and RStudio. These are separate pieces of software: R does all the statistical and graphics stuff, while RStudio provides the graphical user interface. In this chapter we get up and running in RStudio, and see some very basic R code. If you've already used RStudio, you can skim this, but we will assume that you set up a project in the way described here, and have certain packages installed.
 
 ## Orientation in RStudio {#rstudio}
 
@@ -14,7 +14,7 @@ A basic MS Windows RStudio, with work on the go, looks something like this.
 
 The main panes of the screen are:
 
-* Top left: source code, shown as a number of tabs, one for each file;
+* Top left: source code, shown as a number of tabs, one for each file. In this screenshot, we're also using the 'outline' option for the code pane;
 * Bottom left: the 'console', which is a scratchpad for entering code, and where log output is usually shown (and some other tabs which we don't need here);
 * Top right: the 'environment' and 'history' tabs are of main interest. Environment is where you can explore all the data you've created. History is useful for re-doing something, particularly as you can search for code.
 * Bottom right: This has several important tabs
@@ -31,7 +31,7 @@ Recent versions of `RStudio` have a tutorial (tab in top right pane) if you need
 
 Try out the console (bottom left, ctrl-2). Try typing `3 + 4 * 2` there (and press 'enter'). You should see "[1] 11", meaning that the first "[1]" (and in this case only) element of your answer is 11. The spaces in that calculation are optional, but recommended for ease of reading. [Exercise: Try it without the spaces.]
 
-If you'd like to see an answer with more than one element, type `letters` into the console. This is a built-in constant. Check the 'help' for 'letters' to see some others.
+If you'd like to see an answer with more than one element, type `letters` into the console. This is a built-in constant. Check the 'help' (ctrl-3) for 'letters' to see some others.
 
 ## First project
 
@@ -42,7 +42,7 @@ While you can work with 'bare' files of R source code, 'script files' in the jar
 * you can work with several shorter script files (and other types of source file that we won't be looking at) together, which makes it easier to organise and navigate;
 * and a project automatically remembers which directory it's working in, so you can manage data input and output and graphic output more neatly.
 
-Create yourself a new project using 'File/New Project', selecting the options new project, give it the name 'justlearning' and browse to put it in your personal R directory. The sequence should look a little like this, with variation coming from where you create the new project subdirectory. That final part depends on your system and filing habits.
+Create yourself a new project using 'File/New Project', selecting the option new project, give it the name 'justlearning' and browse to put it in your personal R directory. The sequence should look a little like this, with variation coming from where you create the new project subdirectory. That final part depends on your system and filing habits.
 ![new project, step 1](images/new project 1.png){width=75%}
 
 ![new project, step 2](images/new project 2.png){width=75%}
@@ -72,7 +72,7 @@ When you quit RStudio it will save any data and open files in your project. So y
 
 Now that you've got a blank project, add a new blank R script file using `File/New File/R Script`, or the 'file plus' icon top left. It appears in the source code pane, top left. 
 
-Immediately save it; call it 'chapter2' for example. The name isn't critical here, but avoid spaces and punctuation. By default, it will be saved to the top level in the project. This is fine for many projects, though in some cases we might choose to organise code differently.
+Immediately save it; call it 'chapter2' for example. The name isn't critical here, but avoid spaces and punctuation (apart from "_", perhaps). By default, it will be saved to the top level in the project. This is fine for many projects, though in some cases we might choose to organise code differently.
 
 It's good practice to comment as you go along, using `#`. At the top of your new script put some comments saying who you are, the date, and what it is for. Then add a comment for each chunk of code, or for any lines you think might be difficult for you to understand when you come back. I forget where I read this idea, but think of comments as 'notes for a future you'.
 
@@ -103,8 +103,8 @@ The R language is expanding continually as people publish new packages for it. A
 Some packages are already bundled in the basic installation of 'R', such as `base` which provides, as the name suggests, many of the most basic functions. But there are thousands of other packages, coming from:
 
 * [CRAN](https://cran.r-project.org), the "Comprehensive R Archive Network" is the authoritative collection of packages. There are also various 'mirror' (official copy) sites hosted elsewhere, such as at Ghent University. Packages in CRAN have been through a degree of quality control, and are preferred to the less official sources.
-* [Github](https://github.com) and other public repositories. Even Eurocontrol shares some there, such as [himach](https://github.com/david6marsh/himach) and the [PRC dashboard](https://github.com/euctrl-pru/portal).
-* Home-made. Making packages is out of the scope of the book, but if you're inside Eurocontrol, you may want to load the `statfor` package created by Sebastien that builds some access to Eurocontrol datawarehouses as well as nice formatting.
+* [Github](https://github.com) and other public repositories.
+* Home-made. Making packages is out of the scope of the book.
 
 There are two^[actually, there's a third, but that's too much detail for here] steps to using a package, and sometimes these get confused:
 
@@ -115,7 +115,7 @@ A few packages are automatically loaded at the start of the session. In the pack
 
 ![](images/packages.png)
 
-Clicking on the package name takes you to the documentation. There's a manual for all functions together, as a pdf, but it's usually easier to use the help pane to get the same material, and perhaps copy examples from the end of each help entry. More importantly here there are links to **vignettes**, and often now to websites with more info. Vignettes are not little stickers, but essential how-to guides mixing text and code. Often this can provide a skeleton end-to-end structure showing how to use functions, and that you can copy and adapt to your own need. 
+Clicking on the package name takes you to the documentation. There's a manual for all functions together, as a pdf, but it's usually easier to use the help pane to get the same material, and perhaps copy examples from the end of each help entry. More importantly, in the package details here there are links to **vignettes**, and often now to websites with more info. Vignettes are not little stickers, but essential how-to guides mixing text and code. Often this can provide a skeleton end-to-end structure showing how to use functions, one that you can copy and adapt to your own need. 
 
 You can load a package by ticking the box in the packages pane, but normally it's done in code, as in this example.
 
@@ -124,7 +124,7 @@ library(lubridate) # lots of date-related functions.
 
 ```
 
-Two packages can define a function with the same name. The CRAN repository of packages performs quality checks, but overlap between packages is not something CRAN controls. Think of CRAN as an excellent library rather than an 'Académie française' for R  that controls which words are allowed into the language^[Actually, CRAN does enforce some quality control but that's more about how packages work than what packages there might be, with which functions.]. When there is overlap in packages, both defining a function with the same name, say, then on loading the second one 'masks' the first (you should see this above). Sometimes, as an alternative to loading the full package, you might see in code a 'two colon' usage, such as `base::union`. This is very common inside packages (it's recommended), and it's a way to insist that the first package version of the function should be used. 
+Two packages can define a function with the same name. The CRAN repository of packages performs quality checks, but overlap between packages is not something CRAN controls. Think of CRAN as an excellent library rather than an 'Académie française' for R that controls which words are allowed into the language^[Actually, CRAN does enforce some quality control but that's more about how packages work than what packages there might be, with which functions.]. When there is overlap in packages, both defining a function with the same name, say, then on loading the second one 'masks' the first (you should see this in response to `library(lubridate)` with a message that `the following objects are masked from 'package:base' ...`). Sometimes, as an alternative to loading the full package, you might see in code a 'two colon' usage, such as `base::union`. This is very common inside packages (it's recommended), and it's a way to insist that the version of the function from a specific package should be used. 
 
 As well as function with the same name and different results, there are often many different functions that you could use to achieve the same result, eg `base::paste0()` and `stringr::str_c()` both concatenate strings.
 
@@ -140,7 +140,7 @@ There's an art in R to doing the most with the minimum number of packages, since
  
 But sometimes, you just don't want to make the flaky pastry yourself. There are times when you're looking at a complex task and should be thinking 'surely someone has already tackled this in R?'. A little googling will often find you most of the pieces already in place in a new package, or one you have but had forgotten about. 
 
-You develop a personal 'dialect' of R, from the packages that you choose to use most often. We'll discuss one of the most common dialects, the `tidyverse`, in more detail in the next section. Since it helps if you and colleagues share a dialect, everyone adopting the tidyverse is a good start.
+Over time, you develop a personal 'dialect' of R, from the packages that you choose to use most often. We'll discuss one of the most common dialects, the `tidyverse`, in more detail in the next section. Since it helps if you and colleagues share a dialect, everyone adopting the tidyverse is a good start.
 
 ### Tidyverse
 
@@ -157,7 +157,7 @@ knitr::kable(data.frame(Country = c("France", "Germany"), Year = 2019:2020, Flig
 
 ```
 
-The main data structure used by the tidyverse is the dataframe, although increasingly the tidyverse prefers the 'tibble' `tbl`, which is a specific sort of dataframe. We won't worry about the differences here.
+The main data structure used by the tidyverse is the dataframe, although now the tidyverse defaults to the 'tibble' `tbl`, which is a specific sort of dataframe. We won't worry about the differences here, but you'll see 'tibble' appearing in messages.
 
 For most 'quick pieces of code', the easiest is to start your R script with a `library(tidyverse)` to load all the parts of the tidyverse. If you were writing a package, that wouldn't be very efficient, because there's quite a lot of it. Sometimes you'll see individual parts of the tidyverse loaded including:
 
@@ -168,7 +168,7 @@ For most 'quick pieces of code', the easiest is to start your R script with a `l
 And there are packages which are on the outskirts of the 'tidyverse' which get announced when you first load. The full list (at the time of writing) is as follows. 
 
 ```{r echo = FALSE}
-library(tidyverse)
+suppressMessages(library(tidyverse))
 tidyverse_packages()
 ```
 
@@ -198,7 +198,8 @@ tidier <- pivot_longer(untidy,
 print(tidier)
 
 # using groups - just print the result
-tidier %>% group_by(year) %>% 
+tidier |> 
+  group_by(year) |> 
   summarise(total_flights = sum(flights))
 
 
@@ -218,13 +219,13 @@ You will see lots of different file types (ie file extensions), in the files pan
 
 ## What's gone wrong?
 
-If you see a window like this, then you have started R rather than RStudio. That is a GUI and you can use it to execute R code, but you'll find RStudio easier for all but the quickest snippets of code. ![basic RGui](images/RGui.png){width=60%}
+If you see a window like this, then you have started R rather than RStudio. You *can* use this window to execute R code, but you'll find RStudio easier for all but the quickest snippets of code. ![basic RGui](images/RGui.png){width=60%}
 
 If it keeps on happening you will find it helpful to associate R files (`.R, .RMD` and others) with RStudio rather than R.
 
 If an RStudio project takes a long time to start, perhaps you had a very large file in your environment when you last closed the project. You might think about removing large files that you don't need with `rm(...)` before you close the project.
 
-If you get errors saying a certain package is only compatible with version xx and higher (of R), and you think you've recently updated, are you sure you updated R rather than RStudio? (Even if this is a task for IT, perhaps they misunderstood and updated the wrong one?) The RStudio version is found from the top menu 'RStudio/About R Studio', the R version is seen when you first start up (see the image just above), or is printed if you type `version` in the console.
+If you get errors saying a certain package is only compatible with version xx and higher (of R), and you think you've recently updated, are you sure you updated R rather than RStudio? (Even if this is a task for your IT department, perhaps they misunderstood and updated the wrong one?) The RStudio version is found from the top menu 'RStudio/About R Studio', the R version is seen when you first start up (see the image just above), or is printed if you type `version` in the console.
 
 If you're searching in 'help' and a function isn't appearing, for example in the drop-down as you type, it is probably because it comes from a package that isn't loaded. You can finish typing, and the system will search and may find it, but also some other less good matches. Or if you know the package name, you can type `?ggplot2::geom_line` for example, in the console to go straight there.
 
@@ -233,7 +234,7 @@ If you're searching in 'help' and a function isn't appearing, for example in the
 ### Questions
 
 1. Where will you (usually) find the help on functions?
-2. Which of these provides a graphical user interface (GUI): R, RStudio?
+2. Which of these provides a graphical user interface for writing R code: R or RStudio?
 3. Which ctrl-key combination takes you to the environment pane?
 4. What does an `.rda` file contain?
 5. What's the difference between typing into a script file and into the console?

@@ -19,7 +19,6 @@ Although the project re-opens your datasets and scripts, it starts in a new R se
 
 ```{r initialiseChapter, results='hide', message=FALSE}
 library(tidyverse) 
-
 ```
 
 
@@ -27,41 +26,44 @@ library(tidyverse)
 
 We use public data on national CO~2~ emissions from aviation available on the [EUROCONTROL/AIU website](https://ansperformance.eu/data/). We choose this, apart from the interest in the data themselves, because it's a small set so quick to download, and it's already tidy (each variable in one column). To isolate this book from changes in the original file, we use a version that we've saved to github.
 
+When you're developing code like this, you might want to avoid repeatedly downloading data. We can use an `if ( )` statement to run code only if something is true. In this case only if the `co2_file` does *not* already exist, i.e. hasn't already been downloaded to our `data` folder. The `!` means 'not'. We'll see more logical operators in section \@ref(logicalTests).
+
 ```{r getCO2}
 # download the file to the data folder, the 'mode' parameter is needed on Windows machines
 co2_url <- "https://github.com/david6marsh/flights_in_R/raw/main/data/CO2_emissions_by_state.xlsx"
 # if you want the original, which might have been updated, use this instead
 # co2_url <- "https://ansperformance.eu/download/xls/CO2_emissions_by_state.xlsx"
-download.file(co2_url, "data/CO2_emissions.xlsx", mode = "wb")
+co2_file <- "data/CO2_emissions.xlsx" # save it here
+if (!file.exists(co2_file)) download.file(co2_url, co2_file, mode = "wb")
 
-  
 # load from the DATA worksheet - case sensitive!
 aviation_co2 <- readxl::read_excel("data/CO2_emissions.xlsx", 
                                   sheet = "DATA") 
-
 ```
 
-We've already seen the `function(parameter)` way to call a function in the `cos(pi/3)` example. Now we have `something <- function(parameter, parameter)`. This is a peculiarity of R that you just need to get used to. Think of it as saying: create `something` in the environment (without saying what it is just yet), then fill it (`<-`) with the results of the `function()`. While you might occasionally have used a function in Excel, for example, in R basically everything you do is call functions.
+We've already seen the `function(parameter)` way to call a function in the `cos(pi/3)` example. Now we have `something <- function(parameter, parameter)`. This is a peculiarity of R that you just need to get used to. Think of it as saying: create `something` in the environment (without saying what it is just yet), then fill it (`<-`) with the results of the `function()`. While you might occasionally have used a function in Excel, for example, in R basically everything you do is (define and then) call functions. If you don't have the `something <- ` bit, then R will print the result (to the console). This is what happens with the `download.file()` call, though it returns a silent nothing, so nothing is printed. Instead it saves the downloaded file to the specified place.
 
-Now that the Excel data are downloaded, in your R script comment out the line `download.files(...`, because we don't need to keep downloading if you happen to re-run the code. Comment means putting a `#` in front of it. Pressing shift-ctrl-C (shift-cmd-C on a Mac) does the same, and also works over many lines at once.
+If the data you're using are frequently updated, then you probably want to remove the `if ()` part. Or if running the code bit-by-bit, you can just select the `download.file()` and run that, instead of selecting the whole line.
 
-Notice that R doesn't mind if a function is split over several lines. If there were frequent updates, maybe you would repeatedly download (so not comment out). See (TBD) for an example. [See the Excel, now in your project `data` folder, for disclaimer and details.] 
+Notice that R doesn't mind if a function is split over several lines.
+
+The data come with a description and a disclaimer. See the Excel file, now in your project `data` folder, for details.
 
 International conventions mean that CO~2~ emissions are measured from flights departing airports in a state. `read_xlsx` automatically selects the first row as variable names.
 
-One tool in the 'explore your data' toolbox is `summary`.
+One simple, but useful tool in the 'explore your data' toolbox is `summary`.
 
 ```{r co2summary}
 summary(aviation_co2)
 ```
 
-The `summary` function is fairly basic, but it gives a quick feel for what's in the data. Often more helpful with numeric than character variables, but also useful for spotting if there are missing values `NA`. So we can see there are no missing values here.
+The `summary` function is fairly basic, but it gives a quick feel for what's in the data. It is often more helpful with numeric than character variables, but also useful for spotting if there are missing values `NA`. So we can see there are *no* missing values here.
 
 In this dataset we have:
 
-* YEAR: An integer, not a date, but `read_xlsx` reads this as a real number (ie potentially having decimals).
+* YEAR: An integer, not a date, but `read_xlsx` reads this as a real number (ie potentially having decimals) since we didn't tell it otherwise.
 * MONTH: An integer, giving the month in the year. Again, this has been assumed to be real rather than integer.
-* STATE_NAME, STATE_CODE: A long name and the 2-letter 'country code' derived from the ICAO 4-letter communication address, of which the less said, the better.
+* STATE_NAME, STATE_CODE: A long name and the 2-letter 'country code' derived from the ICAO 4-letter communication address. This 2-letter code is often used in air traffic management data, but can be misleading. [In these data, usage of the 2-letter code is relatively clean, but check out 'GC'.]
 * CO2_QTY_TONNES: Total annual CO2 emissions, in (metric) tonnes.
 * TF: Total flights. This is departing flights. Flights through a state's airspace that do not land are not counted, nor are arrivals from outside the state. A domestic flight is counted once, as a departure.
 
@@ -69,36 +71,36 @@ You'll notice a few names in there which aren't states, such as 'Canaries' which
 
 We want to keep things simple, so we will use a little data wrangling to aggregate to yearly totals for each country, then save the result as an R dataset, rather than an Excel file. These are some quite common step in data wrangling:
 
-* Drop some variables. Here, just `select` everything _except_ than `STATE_CODE`. (Not is a very thin `!`, so easily overlooked.)^[In fact, this step is here just to illustrate the selection step. It's not needed, as we'll see in the data wrangling chapters, or you could test by removing it.]
-* Summarise. `group_by` the relevant variables, then summarise within those groups. Here we use the `summarise_at` variant of summarise, which allows us quickly to apply a function `sum` to multiple variables.
-* Drop some rows. There are few families and business unaffected by COVID-19. Aviation is of course no exception, and the data from 2020 are really an outlier for this reason. To keep things simple here, we omit 2020, using a `filter` that says 'keep only the values before 2020'. The `group_by` isn't _essential_ for the filter, but I think it's probably faster as written here, since the grouping process has already found all of the year 2020 values.
-
-Often you want to keep your groups, but here we don't need to, so we `ungroup` at the end. Then we save the data into the `data` subdirectory of the project.
+* Drop some variables. Here, just `select` everything _except_ `STATE_CODE`. ('Not' is a very thin `!`, so easily overlooked.)^[In fact, this step is here just to illustrate the selection step. It's not needed, as we'll see in the data wrangling chapters, or you could test by removing it.]
+* Drop some rows. There are few families and business unaffected by COVID-19. Aviation is of course no exception, and the data from 2020 are really unusual for this reason. To keep things simple here, we omit data after 2019, using a `filter` that says 'keep only the values before 2020'. The `group_by` isn't _essential_ for the filter, but I think it's probably faster as written here, since the grouping process has already found all of the year 2020 values.
+* Summarise. `group_by` the relevant variables, then summarise within those groups. Here we use the `across` variant of summarise, which allows us quickly to apply a function `sum` to multiple variables. We tell summarise to drop the grouping information once it's finished.
+* Then we save the data into the `data` subdirectory of the project.
 
 There will be more examples of this sort of data manipulation in Chapter \@ref(filter), with more explanation of what's happening. And a lot more when we turn to data wrangling in chapters \@ref(loopsfunctions) and \@ref(groups).
 
 ```{r}
-annual_co2 <- aviation_co2 %>%
-  select(!STATE_CODE) %>% 
-  group_by(YEAR, STATE_NAME) %>%
-  summarise_at(vars(CO2_QTY_TONNES, TF), sum) %>%
-  filter(YEAR < 2020) %>% 
-  ungroup()
+annual_co2 <- aviation_co2 |>
+  select(!STATE_CODE) |> 
+  group_by(YEAR, STATE_NAME) |>
+  filter(YEAR < 2020) |>
+  summarise(across(c(CO2_QTY_TONNES, TF), sum), .groups = "drop") 
 
 save(annual_co2, file = "data/annual_co2.rda")
 
 ```
 
  
-There are three other important ways to explore the data. Firstly in the environment pane (top right, CTRL-8), where you can click the first line, with name on, to see a summary. You get much the same thing in the console by typing `str(annual_co2)` where `str` is for 'structure'. You should see something like this.
+There are three other important ways to explore the data. Firstly in the environment pane (top right, CTRL-8), where you can click the first line, with name on, to see a summary. You should see something like this.
 
 ![](images/CO2inEnvironment.png)
+
+You get much the same thing in the console by typing `str(annual_co2)` where `str` is for 'structure' or, for that matter, almost the same thing from `glimpse(annual_co2)`. 
 
 We can see that there are three numeric variables (`num`) and two character variables (`chr`). All five variables have the same number of observations (`r nrow(annual_co2)`). In a tibble or dataframe the columns are always the same length.
 
 The second way to explore the structure, because this is a tibble, is just to type its name in the console. [Try it] This is useful but just bear in mind that for some data structures, this might fill up your console with a lot of output. Save it for when you're sure you've a tibble. You can check by typing `class(my_thing)` into the console to see if `my_thing` is a tibble (shown as `tbl`).
 
-The third way gives a window to explore every observation. Click on the dataset name next to the blue arrow or type `View(annual_co2)` in the console (sorry about the upper case 'V', R is like that) and you get a tabular data explorer, which allows you to sort and filter. You should see something like this. [Try out the sorting and filtering in the view window. Filter to show only the Netherlands, and sort by total flights.]
+The third way gives a window to explore every observation. Click on the dataset name next to the blue arrow in the environment pane, or type `View(annual_co2)` in the console (sorry about the upper case 'V', R is like that) and you get a tabular data explorer, which allows you to sort and filter. You should see something like this. [Try out the sorting and filtering in the view window. Filter to show only the Netherlands, and sort by total flights.]
 
 ![](images/CO2inViewAndEnvironment.png)
 
@@ -150,7 +152,7 @@ We'll deal with subsetting the whole dataset, rather than just a vector extracte
 
 ## CO~2~ Scatter plot
 
-It's hard to beat a graph as a way to explore data. So we end the chapter exploring a simple graph. The tidyverse way of doing this is to use `ggplot`.
+Checking which variables are in the dataset doesn't get you very far. For the next step in understanding the data you've downloaded, it's hard to beat a graph. So we end this preliminary chapter by creating a simple graph. The tidyverse way of doing this is to use `ggplot`.
 
 ### First draft
 
@@ -180,7 +182,7 @@ There's a (very) rough correlation along a diagonal line, but it would be intere
 
 ### Improve the titles
 
-Let's at least label the axes so that someone else can see quickly what has been plotted. We can transform variables on the fly (using the rule that a parameter can be a function call, here to the function `/`), so let's convert both axes to millions (`1e6` means 1*10^6, so millions with less risk of getting the number of 0s wrong).
+Let's at least label the axes so that someone else can see quickly what has been plotted. We can transform variables on the fly (using the rule that a parameter can be a function call, here to the function `/`), so let's convert both axes to millions (`1e6` means 1*10^6^, so millions with less risk of getting the number of 0s wrong).
 
 The label on the legend is meaningful, but to avoid the block capitals we can change that too within the `labs()` statement. It's a 'colour' legend (that's what is in the `aes` call), so you need to refer to 'colour' in the `labs()`. 
 
@@ -199,9 +201,9 @@ ggplot(annual_co2, aes(TF/1e6, CO2_QTY_TONNES/1e6, colour = YEAR)) +
 
 It's tempting to read the graph as having a number of small clusters, each with flights and CO~2~ increasing with time, and assume that each of these corresponds to a single state. It would be nice to use the graph to see if that's true.
 
-There are too many countries to give each its own shape (we'll see shapes used more effectively in section TBD), but we can easily add a line to join the points for each state. [Working from `geom_point`, how do you think you would add a line?]
+There are too many countries to give each its own shape (we'll see shapes used more effectively in section \@ref(sortedBarExercises)), but we can easily add a line to join the points for each state. [Working from `geom_point`, how do you think you would add a line?]
 
-We need both to add a line, which follows the pattern of `geom_point`, and group by state. That's done in the same way that we coloured by year, in the aesthetics. There are several ways to plot a line. The most obvious one, having seen `geom_point` previously, is `geom_line`. However, this joins the points in x-axis order. We want data order, so that's `geom_path`.
+We need both to add a line, which follows the pattern of `geom_point`, and group by state. That's done in the same way that we coloured by year, in the aesthetics. There are several ways to plot a line. The most obvious one, having seen `geom_point` previously, is `geom_line`. However, this joins the points in x-axis order. We want the points joined in data order, so that's `geom_path` instead.
 
 Out of a sense of neatness, we also add a subscript to CO~2~. The code `bquote(~CO[2]~" (million tonnes)")` took some googling and is cryptic, but it works!
 
@@ -219,7 +221,7 @@ ggplot(annual_co2, aes(TF/1e6, CO2_QTY_TONNES/1e6,
 
 The graph isn't ready for a presentation yet, but a story is already emerging. The lines do a pretty good job of grouping the years for each state together. We see a graph with 6 busy states, 3 of which are fairly linear, so a relatively fixed CO~2~/flight. Three others are more variable from year to year. 
 
-Then there are two states, with flights in the 0.25-0.5 million flights range and that diverge from the main trend line, respectively higher and lower. The remaining, smaller states rather overlap in this graph. 
+Then there are two states, with flights in the 0.25-0.5 million flights range and that diverge from the main trend line, respectively higher and lower. The remaining, smaller states rather overlap in this graph. There's a big difference in CO~2~ emissions between short- and long-haul flights, so a first guess at why there are differences between states (or between years) would be because of differences in the mix of distances flown. But that's as far as we'll go here.
 
 We'll find out how to pick out and label states in the next chapter.
 

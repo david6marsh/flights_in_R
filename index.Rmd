@@ -25,12 +25,12 @@ In the first chapters, we take some first steps in R, using aviation examples an
 
 ## Before you start
 
-You need to have RStudio and R installed on your machine.
+You need to have [RStudio and R](https://posit.co/download/rstudio-desktop/#download) installed on your machine.
 
 
 This book is available as [html here](https://david6marsh.github.io/flights_in_R/) and can be downloaded complete with data from here (TBD).
 
-Air transport and air traffic management, like any domain, have their own jargon. This isn't a training book for air transport, but it will explain some key ideas along the way.
+Air transport and air traffic management, like any domain, have their own jargon. This isn't a training book for air transport, but we will explain some key ideas along the way. Check out the glossary in chapter \@ref(glossary).
 
 There are plenty of useful 'cheat sheets' for R, I'll introduce my favourites as we go through.
 
@@ -50,12 +50,12 @@ The book aims to support you using it in a number of different ways:
 * Reference. Use the book search (top left of this page) to find some how-to material directly.
 * Snippets. The book builds up snippets of usable code (TBD - how complete?) for you to cut-and-paste.
 
-But it is never going to replace the huge amount of excellent information, especially in [stackoverflow](https://stackoverflow.com/). A key principle is that _"Google is your friend"_: even if I prefer [DuckDuckGo](https://www.duckduckgo.com) for many purposes, a Google search is often more productive for R. Whether it's for how to do something, or how to respond to an error, usually someone has already suffered, and some kind person has answered. Google it.
+But it is never going to replace the huge amount of excellent information, especially in [stackoverflow](https://stackoverflow.com/). A key principle is that _"Google is your friend"_: even if I prefer [DuckDuckGo](https://www.duckduckgo.com) for many purposes, a Google search is often more productive for R. Whether it's for how to do something, or how to respond to an error, usually someone has already suffered, and some kind person has helped them. Google it.
 
 ## Structure of the book
 
 * Chapters \@ref(howto) and \@ref(start) should get you up and running in RStudio.
-* Chapters \@ref(firstLook) to 5 start with how to look at data, using a data viewer and with some initial graphs. If you're mostly using existing code that creates simple charts, written by someone else, then these chapters should help you find your way around, and start to adapt the code for your own needs.
+* Chapters \@ref(firstLook) to \@ref(sortbars) start with how to look at data, using a data viewer and with some initial graphs. If you're mostly using existing code that creates simple charts, written by someone else, then these chapters should help you find your way around, and start to adapt the code for your own needs.
 * Chapters \@ref(loopsfunctions) (and TBD) do more data loading and wrangling, covering the basics of loops and functions
 * more...TBD
 * Chapter \@ref(maps) introduces the map functions in R, including where to find airspace structure data, and how to plot both great circle routes and actual route flown.

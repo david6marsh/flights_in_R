@@ -25,9 +25,9 @@ The use of vectors is a sort of looping through a set of values. Or if you prefe
 ```{r}
 c(1, 3, 7) + 2
 1:4 + 1:2 # values of the second vector are recycled
-1:3^2 # ^ happens before :
+1:3^2 # ^ happens before :, so _not_ 1 4 9
 (1:3)^2
-sin(pi/1:4) %>% round(3)  # = round(sin(pi/1:4), 3)
+sin(pi/1:4) |> round(3)  # = round(sin(pi/1:4), 3)
 round(pi, 0:4) # vectors can work in surprising places
 str_c("Year_", unique(aviation_co2$YEAR))
 ```
@@ -76,7 +76,7 @@ b["pie"]
 b$pier
 b$pier[2]
 ```
-Does the `$` method work for vectors? [Try `a$c`] It's no coincidence that we use `$` to extract an element from a list, as well as (in section \@ref(extractfield)) extracting a field from a dataset, but I'll leave you to wonder why that is.
+Does the `$` method work for vectors? [Try `a$c`] It's no coincidence that we use `$` to extract an element from a list, as well as (in section \@ref(extractfield)) extracting a field from a dataframe, but I'll leave you to wonder why that is.
 
 ### Exercises
 
@@ -120,6 +120,7 @@ In this first example we hit the ground running, introducing an optional but pow
 alpha_str_c <- function(n1, n2, ...) {
   # concatenate in parallel each element of these two vectors
   # but with the smaller of the two elements first.
+  # ... allows pass-through of parameters to str_c()
   str_c(pmin(n1, n2), pmax(n1, n2), ...)
 }
 #some airports
@@ -131,9 +132,9 @@ alpha_str_c(ap_list1, ap_list2, sep = "<>")
 alpha_str_c("EHAM", ap_list2, sep = "<>")
 ```
 
-This is a pretty simple function. It doesn't even define any of its own data, just calls another function. We could have assigned the result to a variable `pairs <- ` or something like that. The result would be no different, and the variable is forgotten once you leave the function anyway. [Try this.]
+This is a pretty simple function. It doesn't even define any of its own data, just calls three other functions. Within the function we could have assigned the result to a variable `pairs <- ` or something like that. The result would be no different, and the variable is forgotten once you leave the function anyway. [Try this.]
 
-Using `...` in this way saves you the bother of deciding how and which parameters to pass on to the `str_c`, and can open your function to being used in ways you had not first intended.
+Using `...` in this way saves you the bother of deciding how and which parameters to pass on to the `str_c`, and can open your function to being used in ways you had not first intended. But you can only do it with one function-within-the-function.
 
 Even a short function like this is worth writing. Once you've checked it, you can use it several times and be confident there are no typos (it would be easy to type `pmin` twice, for example). Note the way the lines are broken in the function definition. R really doesn't mind, but they're easier to read if they're all formatted in the same way.
 
@@ -141,7 +142,7 @@ The [tidyverse style guide](https://style.tidyverse.org/functions.html) says tha
 
 The style guide means that, if you're trying to remember a tidyverse function, in theory the mental search space can be cut down to verbs. In practice, English doesn't help much since so many words are both nouns and verbs, as crossword-setters exploit with glee.
 
-What if we sometimes want to combine in reverse alphabetical order? Rather than have a separate function, we extend `alpha_str_c` using a logical `TRUE` or `FALSE` parameter, and an `if`-`else` statement. The relevant help section here is `if` for the language construct, rather than for the function `dplyr::if_else` (which you saw in section \@ref(labelco2)). 
+What if we sometimes want to combine in reverse alphabetical order? Rather than have a separate function, we extend `alpha_str_c` using a logical `TRUE` or `FALSE` parameter, and an `if`-`else` statement. The relevant help section here is `if` for the language construct, rather than for the function `dplyr::if_else` (which you saw in section \@ref(labelco2)). The second of these is used mostly in `mutate()` statements when creating or modifying a variable, the first in open code.
 
 ```{r}
 alpha_str_c <- function(n1, n2, asc = TRUE, ...) {
@@ -162,9 +163,9 @@ alpha_str_c("EFHK", ap_list1, sep = "<>", asc = FALSE)
 
 That's quite a lot of curly brackets for one if-else. In fact, when all you have within them is a single statement, you can omit the "{}". [Exercise: Remove the excess brackets and show the result is unchanged.]
 
-The example also illustrates that, once you're passing a parameter "by name", the order doesn't matter: `asc` appears before `...` and hence before `sep` in the parameter list, but we pass them in any order we like.
+The second example also illustrates that, once you're passing a parameter "by name" (explicitly giving its name `asc=`), the order doesn't matter: `asc` appears before `...` and hence implicitly before `sep` in the parameter list, but we pass them in any order we like.
 
-When _using_ a function, passing parameters by position is more compact. Your variable names should make clear what is in them, anyway. So it should be clear what you're passing to the function, here two airport lists. What the function calls them internally is irrelevant.
+When _using_ a function, passing parameters by position (_without_ naming, e.g. `asc=`) is more compact. Your variable names should make clear what is in them, anyway. So it should be clear what you're passing to the function, here two airport lists. What the function calls them internally is irrelevant.
 
 However, when passing a logical parameter as in the last example, it isn't at all clear what the parameter means from your call to the function, without opening the function. `alpha_str_c("EFHK", ap_list1, FALSE, sep = "<>")` uses the implicit position of the `asc` parameter and gives the same result. [Try this.] But when you come back to the code in a week or two, will you remember what the `FALSE` means? Better then, to be explicit with the parameter name, as we were in the code chunk above.
 
@@ -178,27 +179,27 @@ One variety of function doesn't get a name (`function_name <- `) at all. These a
 listed_loop <- lapply(1:10, function(x) {x^2 + x})
 is.list(listed_loop)
 
-unlisted_loop <- lapply(1:10, function(x) {x^2 + x}) %>% 
+unlisted_loop <- lapply(1:10, function(x) {x^2 + x}) |> 
   unlist()
-# which could also have been listed_loop %>% unlist()
+# which could also have been listed_loop |> unlist()
 is.list(unlisted_loop)
 unlisted_loop
 ```
 
-Check in the Environment pane, or by printing to the console, how these are different. [Why is `unlisted_loop` in a different part of the Environment pane?] Which of the two you need will depend on what you're developing, but I think the second is more frequent.
+Check in the environment pane, or by printing to the console, how these are different. [Why is `unlisted_loop` in a different part of the environment pane?] Which of the two you need will depend on what you're developing, but I think the second is more frequent.
 
 For a second example, we wrap this `lapply`-`unlist` pairing up inside a function. Before you run this code chunk, or read on to the end, describe in words what it will do, given two vectors of text. The answer is a couple of paragraphs earlier.
 
 ```{r}
 combos_str_c <- function(s1, s2, ...){
-  lapply(s1, function(x) str_c(x, s2, ...)) %>% 
+  lapply(s1, function(x) str_c(x, s2, ...)) |> 
     unlist()
 }
 
 combos_str_c(c("A319", "A320", "A321"), c("ceo", "neo"), sep="")
 ```
 
-'Combos' is short for 'combinations'. Rather than just pasting elements of the vectors in pairs, as in `alpha_str_c`, it creates all combinations of the two. In the example this creates a list of 'current engine' and 'new engine' options of Airbus aircraft. You'll have to check elsewhere if all 6 exist!
+'Combos' is short for 'combinations'. Rather than just pasting elements of the vectors in pairs, as in `alpha_str_c`, it creates all combinations of the two. In the example this creates a list of 'current engine' (ceo) and 'new engine' (neo) options of Airbus aircraft. You'll have to check elsewhere if all 6 aircraft types exist!
 
 ### Exercises
 
@@ -211,7 +212,7 @@ combos_str_c(c("A319", "A320", "A321"), c("ceo", "neo"), sep="")
 5) How would you adapt `alpha_str_c` to use `<>` as a default separator?
 6) With this new version, do the two examples of its use, in the code chunks above, still work? How can you make the examples even more compact?
 7) Building on `combos_str_c` write a function to create all bidirectional combinations of two lists of airport names or codes, eg `c("EGLL", "LEMD", "LFPG", "LTFM")` and `c("LIRF", "EHAM", "LFPO", "EDDF")`?
-8) Extend the function from (7) to find all possible routes between the airports in a single list. (Hint: It means adding just 5 characters to the code, including spaces.)
+8) Extend the function from (7) so that as well as working as before, it can return all combinations of a single list (including circular flights "EGLL<>EGLL"). (Hint: It means adding just 5 characters to the code, including spaces.)
 9) Add a parameter to allow this function to return, either the full list or with duplicates removed. (Hint: You'll need a function you saw in section \@ref(extractfield))
 
 #### Answers
@@ -225,7 +226,7 @@ combos_str_c(c("A319", "A320", "A321"), c("ceo", "neo"), sep="")
 7) This merges the two functions we saw earlier. The `asc` and `sep` parameters both work through the ellipsis `...` even though they're from different functions: this demonstrates the power of 'nested' ellipsis.
 ```{r}
 alpha_combos_str_c <- function(s1, s2, ...){
-  lapply(s1, function(x) alpha_str_c(x, s2, ...)) %>% 
+  lapply(s1, function(x) alpha_str_c(x, s2, ...)) |> 
     unlist()
 }
 ap_list1 <- c("EGLL", "LEMD", "LFPG", "LTFM")
@@ -233,20 +234,19 @@ ap_list2 <- c("LIRF", "EHAM", "LFPO", "EDDF")
 alpha_combos_str_c(ap_list1, ap_list2, sep = "<>")
 alpha_combos_str_c(ap_list1, ap_list2, sep = "<>", asc = FALSE)
 ```
-8) We just want the second list to be the same as the first one, by default, so like this.
+8) We define the second list to be the same as the first one, by default, so like this. You could also use `alpha_combos_str_c(ap_list1, ap_list1, sep = "<>")`, though in this example it takes more characters!
 ```{r}
 alpha_combos_str_c <- function(s1, s2 = s1, ...){
-  lapply(s1, function(x) alpha_str_c(x, s2, ...)) %>% 
+  lapply(s1, function(x) alpha_str_c(x, s2, ...)) |> 
     unlist()
 }
 ap_list1 <- c("EGLL", "LEMD", "LFPG", "LTFM")
 alpha_combos_str_c(ap_list1, sep = "<>")
-alpha_combos_str_c(ap_list1, sep = "<>", asc = FALSE)
 ```
 9) This calls for a logical parameter, and finally a good use for defining a variable within the function. The final `else pairs` is really saying `else return(pairs)`. If you omit the `else pairs` completely then, when `uniq=FALSE` the `if` evaluates to nothing, so the function returns nothing. [Try this.]
 ```{r}
 alpha_combos_str_c <- function(s1, s2=s1, uniq = FALSE, ...){
-  pairs <- lapply(s1, function(x) alpha_str_c(x, s2, ...)) %>% 
+  pairs <- lapply(s1, function(x) alpha_str_c(x, s2, ...)) |> 
     unlist()
   if (uniq) unique(pairs)
   else pairs
@@ -260,7 +260,9 @@ alpha_combos_str_c(ap_list1, sep = "<>", uniq = TRUE)
 
 Some theory you didn't want to know.
 
-A default value provided in a function definition is often called a 'promise'. It is only evaluated at the moment that it is needed, not at, say, some hypothetical moment of compilation. Knowing that, predict  the result of calling `promises()`, without specifying any parameters. Then try it in the console.
+A default value provided in a function definition is often called a 'promise'. It is only evaluated at the moment that it is needed, not at, say, some hypothetical moment of compilation. It might help to think of it as a code snippet, that will be inserted when needed, rather than a value or a variable. 
+
+Knowing this, predict  the result of calling `promises()`, without specifying any parameters. Then try it in the console.
 
 ```{r}
 a <- 5
@@ -283,17 +285,20 @@ An 'airspace' here is usually a country's airspace: think of extending the borde
  
 There are two little catches to the SID data. Firstly, the Excel export comes in a number of tables one after the other on a single worksheet. Secondly, the field names of each table are horrible, and use merged cells.
 
-We've extracted some data for the all-cargo market segment. As a first example, we extract a single table from within the Excel file. [Download some yourself and inspect the Excel file.] For this book, as with the emissions data, we provide a snapshot on-line which you can download like this. You only need to do this once.
+We've downloaded some data for the all-cargo market segment. As a first example, we extract a single table from within the Excel file. [Download some yourself and inspect the Excel file.] For this book, as with the emissions data, we provide a snapshot on-line which you can download like this. You only need to do this once.
 
 ```{r}
 url <- "https://github.com/david6marsh/flights_in_R/raw/main/data/SID_Monthly_AllCargo.xlsx"
-download.file(url, "data/SID_Monthly_AllCargo.xlsx", mode = "wb") 
+xl_file <- "data/SID_Monthly_AllCargo.xlsx"
+if (!file.exists(xl_file)) download.file(url, xl_file, mode = "wb") 
 ```
 
 ![The Excel download is in 'tables' like this.](images/SID_monthly_excel_snapshot.png)
+
 The column names are month, and three values for each of arrival, departure, (one airport in the airspace and one not), internal (both airports in), overflight (neither) and total. We use `combos_str_c` to generate some more useful column names.
 
-Loading one table is then just a matter of saying how many rows to ignore at the top (`skip=`) and how many rows to load (`n_max`). 
+Loading one table is then just a matter of saying how many rows to ignore at the top (`skip=`) and how many rows to load (`n_max`). It seems quicker to define our own column names than to tidy up the Excel names, so we do that, using a function from the last section. 
+
 ```{r}
 # this adds the output of combos_str_c to a vector that already has 'month' in it
 # the indentation should help highlight that
@@ -302,14 +307,17 @@ monthly_cols <- c("month",
                                c("_last", "", "_growth"),
                                sep=""))
 
-monthlies <- readxl::read_xlsx("data/SID_Monthly_AllCargo.xlsx", skip = 9, n_max = 14, 
+monthlies <- readxl::read_xlsx(xl_file, skip = 9, n_max = 14, 
                                col_names = monthly_cols) 
+# if you define your own names like this,
+#   definitely need to double-check that they're in the correct place
 ```
+
 The `month` column has been correctly interpreted as a date. We'll look at dates and date-time variables in more detail in section TBD. For the moment, if you see `POSIXct` then this is a format for date-time variables. In this chapter, the dates look after themselves.
 
 ### Load monthly data for multiple countries {#loadmultiplemonthlies}
 
-That didn't take much code. If we want to load multiple countries, then we need to wrap up the extraction into a function. At the same time, we can pick up some metadata: market segment and units from the top of the file, and the airspace name from just before the data. These are obtained by selecting a specific range (here just one cell at a time).
+That didn't take much code. If we want to load multiple countries from the same spreadsheet, then we need to wrap up the extraction into a function. At the same time, we can pick up some metadata: market segment and units from the top of the file, and the airspace name from just before the data. These are obtained by selecting a specific range (here just one cell at a time).
 
 ```{r}
 extract_monthlies <- function(file, skip, n_rows){
@@ -332,7 +340,7 @@ extract_monthlies <- function(file, skip, n_rows){
 }
 
 # check this works, as before but with added metadata
-monthlies <- extract_monthlies("data/SID_Monthly_AllCargo.xlsx", skip = 9, n_rows = 14)
+monthlies <- extract_monthlies(xl_file, skip = 9, n_rows = 14)
 ```
 
 By inspecting the Excel file, we need skips `c(9, 28, 47, ..., 199)`. [How do you generate that with `seq`?]
@@ -345,24 +353,24 @@ For the looping we are spoiled for choice.
 ```{r}
 # V1. Use lapply
 all_monthlies_v1 <- lapply(seq(9, 199, by = 19),
-                     function(x) extract_monthlies("data/SID_Monthly_AllCargo.xlsx",
-                                                   x, 14)) %>% 
-  bind_rows()
+                     function(x) extract_monthlies(xl_file,
+                                                   x, 14)) |> 
+  bind_rows() # combine the list of tibbles into one, each on top of the next
 
 # V2. With 'map' the anonymous function is more compact
 all_monthlies_v2 <- map(seq(9, 199, by = 19),
-                     ~extract_monthlies("data/SID_Monthly_AllCargo.xlsx", ., 14)) %>% 
+                     ~extract_monthlies(xl_file, ., 14)) |> 
   bind_rows()
-identical(all_monthlies_v1, all_monthlies_v2)
+identical(all_monthlies_v1, all_monthlies_v2) # check that these are the same
 
 # V3.
-# Build a set of parameters for the extract
-extract_locs <- data.frame(file = "data/SID_Monthly_AllCargo.xlsx",
+# Build a set of parameters for the extraction
+extract_locs <- tibble(file = xl_file,
                        skip = seq(9, 199, by = 19),
                        n_rows = 14)
 # Then pmap passes them by name to your function
-all_monthlies_v3 <- extract_locs %>% 
-  pmap(extract_monthlies) %>% 
+all_monthlies_v3 <- extract_locs |> 
+  pmap(extract_monthlies) |> 
   bind_rows()
 identical(all_monthlies_v1, all_monthlies_v3)
 ```
@@ -378,7 +386,8 @@ urls <- str_c("https://github.com/david6marsh/flights_in_R/raw/main/data/SID_Mon
                 file_segments, 
                 ".xlsx")
 local_names <- str_c("data/SID_Monthly_", file_segments, ".xlsx")
-download.file(urls, local_names, method = "libcurl", mode = "wb") #for each file, load into /data
+#for each file, load into /data
+download.file(urls, local_names, method = "libcurl", mode = "wb") 
 ```
 In this particular case, we already know the file names. More often, we have downloaded a number of files, and know the file name format, but want to avoid typing in the names ourselves. The `dir` function does the job for us, and matches to a pattern. Best to check the number of files, or check the list by eye just to see that the pattern didn't find files that you don't want to process.
 
@@ -386,13 +395,13 @@ We need something like the code for `extract_locs`, but automatic "recycling" do
 
 ```{r}
 SID_files <- dir("data", pattern = "SID_Monthly", full.names = TRUE)
-# force all combinations of file and skip
-extract_locs <- data.frame(file = SID_files) %>% 
-  crossing(data.frame(skip = seq(9, 199, by = 19),
+# force all combinations of file and skip, but n_rows is always 14
+extract_locs <- tibble(file = SID_files) |> 
+  crossing(tibble(skip = seq(9, 199, by = 19),
                        n_rows = 14))
 # and load
-many_segment_monthlies <- extract_locs %>% 
-  pmap(extract_monthlies) %>% 
+many_segment_monthlies <- extract_locs |> 
+  pmap(extract_monthlies) |> 
   bind_rows()
 ```
 
@@ -404,13 +413,13 @@ There's a lot more that we can do with such data: tidying, summarising, adapting
 
 #### Questions
 
-1) Use `lapply` and an anonymous (temporary) function to loop over the `skips`. What happens if you `unlist` the result?
-2) Use `read_xlsx` to load the A-column from the file. Use seq to generate the row position of the airspace names (rather than the starts of the data). Hence extract the airspace names.
+1) Use `lapply` and an anonymous (temporary) function to loop over the `skips`, and in each loop read the (single) excel file. What happens if you `unlist` the result?
+2) Use `read_xlsx` to load the A-column from the file. Use seq to generate the row position of the airspace names (rather than the starts of the data) and use `slice()` to select rows. Hence extract the airspace names.
 3) Is the `monthlies` dataset tidy?
 4) Plot total flights with one line per airspace.
 5) How would you improve this graph? 
 6) Where is the drop in flights resulting from the COVID-19 lockdowns?
-7) Try a single `data.frame` without the `crossing`. Why does R complain?
+7) Try a single `tibble` without the `crossing`. Why does R complain?
 8) As for question 4, but facet by market segment.
 10) From the SID, download a longer set of data, for multiple market segments. Adapt the code you have used to import this. Plot the data, for a quick visual check.
 11) Adapt `extract_monthlies` to allow the user to modify the column names. Advanced version: Use the `...` when doing this, but why might this be risky?
@@ -423,7 +432,7 @@ There's a lot more that we can do with such data: tidying, summarising, adapting
 ```{r}
 skips <- seq(9, 199, by = 19)
 monthlies <- lapply(skips,
-                    function(x) readxl::read_xlsx("data/SID_Monthly_AllCargo.xlsx", 
+                    function(x) readxl::read_xlsx(xl_file, 
                                       skip = x, n_max = 14, 
                                       col_names = monthly_cols))
 temp <- unlist(monthlies)
@@ -431,21 +440,21 @@ temp <- unlist(monthlies)
 2) Code like this. I followed through the links in the help file to find the `cell_cols` syntax, but you could also just use something like `"A1:A200"`, knowing that you only need the first 197 anyway, and `read_xlsx` drops blank rows from the end.
 ```{r}
 name_rows <- seq(7, 197, by = 19)
-airspace_names <- readxl::read_xlsx("data/SID_Monthly_AllCargo.xlsx", 
+airspace_names <- readxl::read_xlsx(xl_file, 
                             range = cellranger::cell_cols("A"), 
-                                      col_names = "airspace") %>% 
+                                      col_names = "airspace") |> 
   slice(name_rows)
 ```
 You could also use `[]` syntax instead of `slice`. Can you give two alternative approaches to this? Even if it has only 1 column, `airspace_names` is a dataframe, so you need to refer to both the column and the rows.
 ```{r}
 # two approaches
-airspace_names <- readxl::read_xlsx("data/SID_Monthly_AllCargo.xlsx", 
+airspace_names <- readxl::read_xlsx(xl_file, 
                             range = cellranger::cell_cols("A"), 
                                       col_names = "airspace") 
 v1 <- airspace_names$airspace[name_rows]
 v2 <- airspace_names[name_rows, 1]
 # and a third - pull out the vector - in effect does the same as the '$' in 1.
-v3 <- airspace_names %>% pull(airspace)
+v3 <- airspace_names |> pull(airspace)
 v3 <- v3[name_rows]
 ```
 3) No, not tidy, because we have multiple columns of flight data.
@@ -469,16 +478,14 @@ ggplot(many_segment_monthlies,
   labs(y = "Total flights in month")
 ```
 
-10) If you save the downloaded Excel files into the `data` directory then you'll need to name them so that you can tell them apart from the first batch. Easier might be to use a subdirectory of `data`. Otherwise, just adapt `skip` and `n_max`.
-11) We do the full monty and make all three parts adaptable. It's polite, to yourself and others, when adding parameters to an existing function, to make the default behaviour exactly as it was before. That way, any existing uses of the function will continue to work. List new parameters after the old ones, and supply default values to give the original behaviour.
+9) If you save the downloaded Excel files into the `data` directory then you'll need to name them so that you can tell them apart from the first batch. Easier might be to use a subdirectory of `data`. Otherwise, just adapt `skip` and `n_max`.
+10) We do the full monty and make all three parts adaptable. It's polite, to yourself and others, when adding parameters to an existing function, to make the default behaviour exactly as it was before. That way, any existing uses of the function will continue to work. List new parameters after the old ones, and supply default values to give the original behaviour.
 
 ```{r}
 extract_monthlies <- function(file, skip, n_rows,
                               col1 = c("A", "D", "I", "O", "T"),
                               col2 = c("_last", "", "_growth"),
                               sep = ""){
-  stopifnot(length(col1) == 5)
-  stopifnot(length(col2) == 3)
   monthly_cols <- c("month", 
                     combos_str_c(col1, col2, sep = sep))
   meta_segment <- readxl::read_xlsx(file, range = "A2", 
@@ -495,22 +502,22 @@ extract_monthlies <- function(file, skip, n_rows,
   bind_cols(meta_airspace, meta_segment, meta_units, monthlies)
 }
 
-monthlies <- extract_monthlies("data/SID_Monthly_AllCargo.xlsx", skip = 9, n_rows = 14,
+monthlies <- extract_monthlies(xl_file, skip = 9, n_rows = 14,
                                col1 = c("Arr", "Dep", "Int", "Over", "Total"))
 ```
 
 For the 'advanced' version, the clue is if you find yourself writing `sep = sep` to pass parameters on to another function. Here we replace both `sep = ""` and `sep = sep` with `...`. There is a risk with this that a user could then also pass the `collapse` parameter, which would have unfortunate consequences. So safer is not to use the `...` here.
 
-12) It's important that `col1` has 5 values, and `col2` has 3 values, otherwise the column naming will be scrambled. How do you get the number of values in a vector? With that, we also need the function `stopifnot` for checking parameters. Here we would add two lines, eg `stopifnot(length(col1) == 5)`, `stopifnot(length(col2) == 3)` at the start of the function. Try this. We use two lines because then the error reporting is more precise: it tells the user exactly which parameter is the wrong length.
-13) `crossing` replaces `lapply` for us, but it returns a dataframe, and `str_c` is not be happy with a tibble or dataframe, it wants a vector. In section \@ref(topStates) we saw `pull` for getting a vector out of a dataframe. With this, we can make it work. It's not clearly simpler than using `lapply`, but it's more self explanatory, because, rather than seeing `lapply` which could be any sort of loop and you need to read it to work out why the loop is there, you've got `crossing` written clearly.
+11) It's important that `col1` has 5 values, and `col2` has 3 values, otherwise the column naming will be scrambled. How do you get the number of values in a vector? With that, we also need the function `stopifnot` for checking parameters. Here we would add two lines, eg `stopifnot(length(col1) == 5)`, `stopifnot(length(col2) == 3)` at the start of the function. Try this. We use two lines because then the error reporting is more precise: it tells the user exactly which parameter is the wrong length.
+12) `crossing` replaces `lapply` for us, but it returns a dataframe, and `str_c` is not happy with a tibble or dataframe, it wants a vector. In section \@ref(topStates) we saw `pull` for getting a vector out of a dataframe. With this, we can make it work. It's not clearly simpler than using `lapply`, but it's more self explanatory, because, rather than seeing `lapply` which could be any sort of loop and you need to read it to work out why the loop is there, you've got `crossing` written clearly.
 
 ```{r}
 alt_combos_str_c <- function(s1, s2, ...){
   # get all combinations, as a dataframe
   cross <- crossing(s1, s2)
   # paste the vectors from this 
-  str_c(cross %>% pull(1),
-        cross %>% pull(2),
+  str_c(cross |> pull(1),
+        cross |> pull(2),
         ...)
 }
 
@@ -520,4 +527,14 @@ alt_combos_str_c(c("A319", "A320", "A321"), c("ceo", "neo"), sep="")
 Even if you didn't get this answer correct, there is a useful 'error pattern' here: where your code does not work first time because either (a) a function returns a type of data that you were not expecting or (b) a function is fussy about the type of data that you pass it as a parameter. 
 
 The functions of R are really powerful, and you do a lot by stringing them together. Sometimes, however, it feels like all the effort is in getting the data types aligned from one function to the next.
+
+## What's gone wrong?
+
+If you're not getting the min or max that you expect to see, in particular if every row has come out with the same value, then you've probably used `min()` or `max()` in place of `pmin()` or `pmax()`. The `p` gives you 'pairwise' min or max. While there are lots of benefits - in compact, readable code - for working with vectors, you need to keep in mind that that's going on. Compare the output of these:
+
+```{r}
+min(c(1, 5), c(3, 4)) # gives minimum over them all
+pmin(c(1, 5), c(3, 4)) # gives row-by-row 'pairwise' min
+pmin(1:5, 3) # recycles 3 to rep(3, 5) then does pairwise
+```
 
